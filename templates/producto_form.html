@@ -1,28 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}{{ 'Editar' if producto else 'Nuevo' }} Producto - Inventario de Refacciones{% endblock %}
+{% block title %}{{ 'Editar' if producto else 'Nuevo' }} Producto - Inventario PPG{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-{{ 'edit' if producto else 'plus' }} me-2"></i>
-        {{ 'Editar' if producto else 'Nuevo' }} Producto
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{{ url_for('productos') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i>
-            Volver a Productos
-        </a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-{{ 'edit' if producto else 'plus' }} me-2"></i>{{ 'Editar' if producto else 'Nuevo' }} Producto</h2>
+    <a href="{{ url_for('productos') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>
+        Volver a Productos
+    </a>
 </div>
 
 <div class="row">
     <div class="col-lg-8">
-        <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">
-                    Información del Producto
-                </h6>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ 'Editar' if producto else 'Nueva' }} Información del Producto</h5>
             </div>
             <div class="card-body">
                 <form method="POST" action="{{ url_for('guardar_producto') }}">
@@ -41,7 +34,7 @@
                         <div class="col-md-4">
                             <div class="mb-3">
                                 <label for="codigo" class="form-label">Código</label>
-                                <input type="text" class="form-control" id="codigo" name="codigo" 
+                                <input type="text" class="form-control" id="codigo" name="codigo"
                                        value="{{ producto.codigo if producto else '' }}">
                             </div>
                         </div>
@@ -112,24 +105,16 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="cantidad_requerida" class="form-label">Cantidad Requerida por Máquina</label>
+                        <label for="cantidad_requerida" class="form-label">Cantidad Requerida</label>
                         <input type="number" class="form-control" id="cantidad_requerida" name="cantidad_requerida" 
                                value="{{ producto.cantidad_requerida if producto else 1 }}" min="0">
+                        <div class="form-text">Cantidad mínima necesaria en inventario</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="notas" class="form-label">Notas Adicionales</label>
-                        <textarea class="form-control" id="notas" name="notas" rows="3">{{ producto.notas if producto else '' }}</textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="imagen_ruta" class="form-label">Ruta de Imagen</label>
-                        <input type="text" class="form-control" id="imagen_ruta" name="imagen_ruta" 
-                               value="{{ producto.imagen_ruta if producto else '' }}"
-                               placeholder="Se generará automáticamente basada en el ID">
-                        <div class="form-text">
-                            La imagen se buscará automáticamente como: imagenes/[ID].jpg
-                        </div>
+                        <textarea class="form-control" id="notas" name="notas" rows="3" 
+                                  placeholder="Información adicional sobre el producto...">{{ producto.notas if producto else '' }}</textarea>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -148,76 +133,47 @@
     </div>
 
     <div class="col-lg-4">
-        <!-- Vista previa de la imagen -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-info">Vista Previa</h6>
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">{{ 'Vista Previa' if producto else 'Información' }}</h5>
             </div>
             <div class="card-body text-center">
                 {% if producto %}
-                <img id="preview-image" src="/imagenes/{{ producto.id }}.jpg" 
+                <img src="/imagenes/{{ producto.id }}.jpg" 
                      class="img-fluid rounded mb-3" 
                      style="max-height: 200px;"
                      onerror="handleImageError(this)"
                      alt="Producto {{ producto.id }}">
-                <p class="text-muted">Imagen del producto</p>
+                <p class="text-muted">Imagen del producto ID: {{ producto.id }}</p>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Editando producto:</strong><br>
+                    ID: {{ producto.id }}<br>
+                    Creado: {{ producto.fecha_creacion }}<br>
+                    {% if producto.fecha_actualizacion != producto.fecha_creacion %}
+                    Actualizado: {{ producto.fecha_actualizacion }}
+                    {% endif %}
+                </div>
                 {% else %}
                 <div class="text-muted">
                     <i class="fas fa-image fa-3x mb-3"></i>
                     <p>La imagen se mostrará después de guardar el producto</p>
                 </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Acciones rápidas -->
-        <div class="card shadow">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-success">Acciones Rápidas</h6>
-            </div>
-            <div class="card-body">
-                <div class="d-grid gap-2">
-                    <button type="button" class="btn btn-outline-info" onclick="agregarCategoria()">
-                        <i class="fas fa-plus me-1"></i>
-                        Nueva Categoría
-                    </button>
-                    <button type="button" class="btn btn-outline-info" onclick="agregarMarca()">
-                        <i class="fas fa-plus me-1"></i>
-                        Nueva Marca
-                    </button>
-                    <button type="button" class="btn btn-outline-info" onclick="agregarMaquina()">
-                        <i class="fas fa-plus me-1"></i>
-                        Nueva Máquina
-                    </button>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Imagen del producto:</strong><br>
+                    La imagen se mostrará automáticamente cuando el producto tenga un ID asignado. 
+                    Guarda la imagen como <code>imagenes/[ID].jpg</code>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modales para agregar elementos rápidamente -->
-<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Nueva Categoría</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="nuevaCategoriaForm">
-                    <div class="mb-3">
-                        <label for="nueva_categoria_nombre" class="form-label">Nombre de la Categoría</label>
-                        <input type="text" class="form-control" id="nueva_categoria_nombre" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="nueva_categoria_descripcion" class="form-label">Descripción</label>
-                        <textarea class="form-control" id="nueva_categoria_descripcion" rows="2"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="guardarCategoria()">Guardar</button>
+                {% endif %}
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Campos obligatorios:</strong><br>
+                    Solo la <strong>descripción</strong> es obligatoria. Los demás campos son opcionales.
+                </div>
             </div>
         </div>
     </div>
@@ -229,6 +185,7 @@
 function cargarSubcategorias() {
     const categoriaId = document.getElementById('categoria_id').value;
     const subcategoriaSelect = document.getElementById('subcategoria_id');
+    const subcategoriaActual = '{{ producto.subcategoria_id if producto else "" }}';
     
     // Limpiar subcategorías
     subcategoriaSelect.innerHTML = '<option value="">Seleccionar subcategoría...</option>';
@@ -241,43 +198,18 @@ function cargarSubcategorias() {
                     const option = document.createElement('option');
                     option.value = subcategoria.id;
                     option.textContent = subcategoria.nombre;
+                    
+                    // Seleccionar la subcategoría actual si estamos editando
+                    if (subcategoriaActual && subcategoria.id == subcategoriaActual) {
+                        option.selected = true;
+                    }
+                    
                     subcategoriaSelect.appendChild(option);
                 });
             })
             .catch(error => {
                 console.error('Error cargando subcategorías:', error);
             });
-    }
-}
-
-function agregarCategoria() {
-    new bootstrap.Modal(document.getElementById('nuevaCategoriaModal')).show();
-}
-
-function agregarMarca() {
-    const nombre = prompt('Nombre de la nueva marca:');
-    if (nombre) {
-        // Implementar llamada AJAX para agregar marca
-        alert('Funcionalidad en desarrollo');
-    }
-}
-
-function agregarMaquina() {
-    const nombre = prompt('Nombre de la nueva máquina:');
-    if (nombre) {
-        // Implementar llamada AJAX para agregar máquina
-        alert('Funcionalidad en desarrollo');
-    }
-}
-
-function guardarCategoria() {
-    const nombre = document.getElementById('nueva_categoria_nombre').value;
-    const descripcion = document.getElementById('nueva_categoria_descripcion').value;
-    
-    if (nombre) {
-        // Implementar llamada AJAX para guardar categoría
-        alert('Funcionalidad en desarrollo');
-        bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal')).hide();
     }
 }
 

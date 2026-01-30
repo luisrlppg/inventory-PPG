@@ -1,82 +1,93 @@
 {% extends "base.html" %}
 
-{% block title %}Productos - Inventario de Refacciones{% endblock %}
+{% block title %}Productos - Inventario PPG{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <h1 class="h2">
-        <i class="fas fa-boxes me-2"></i>
-        Productos
-    </h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-                <i class="fas fa-plus me-1"></i>
-                Nuevo Producto
-            </a>
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-boxes me-2"></i>Productos</h2>
+    <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>
+        Nuevo Producto
+    </a>
 </div>
 
 <!-- Filtros -->
-<div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" class="row g-3">
-            <div class="col-md-3">
-                <label for="search" class="form-label">Buscar</label>
-                <input type="text" class="form-control" id="search" name="search" 
-                       value="{{ search }}" placeholder="Descripción o código...">
-            </div>
-            <div class="col-md-3">
-                <label for="categoria" class="form-label">Categoría</label>
-                <select class="form-select" id="categoria" name="categoria">
-                    <option value="">Todas las categorías</option>
-                    {% for categoria in categorias %}
-                    <option value="{{ categoria.nombre }}" 
-                            {{ 'selected' if categoria_filter == categoria.nombre }}>
-                        {{ categoria.nombre }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="marca" class="form-label">Marca</label>
-                <select class="form-select" id="marca" name="marca">
-                    <option value="">Todas las marcas</option>
-                    {% for marca in marcas %}
-                    <option value="{{ marca.nombre }}" 
-                            {{ 'selected' if marca_filter == marca.nombre }}>
-                        {{ marca.nombre }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-outline-primary me-2">
-                    <i class="fas fa-search"></i> Filtrar
+<div class="filter-card">
+    <form method="GET" id="filtrosForm" class="row g-3">
+        <div class="col-md-3">
+            <label for="search" class="form-label">Buscar</label>
+            <input type="text" class="form-control" id="search" name="search" 
+                   value="{{ filters.search }}" placeholder="Descripción, código o notas...">
+        </div>
+        <div class="col-md-2">
+            <label for="codigo" class="form-label">Código</label>
+            <input type="text" class="form-control" id="codigo" name="codigo" 
+                   value="{{ filters.codigo }}" placeholder="Código...">
+        </div>
+        <div class="col-md-2">
+            <label for="categoria" class="form-label">Categoría</label>
+            <select class="form-select" id="categoria" name="categoria">
+                <option value="">Todas</option>
+                {% for categoria in categorias %}
+                <option value="{{ categoria.nombre }}" 
+                        {{ 'selected' if filters.categoria == categoria.nombre }}>
+                    {{ categoria.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="marca" class="form-label">Marca</label>
+            <select class="form-select" id="marca" name="marca">
+                <option value="">Todas</option>
+                {% for marca in marcas %}
+                <option value="{{ marca.nombre }}" 
+                        {{ 'selected' if filters.marca == marca.nombre }}>
+                    {{ marca.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="maquina" class="form-label">Máquina</label>
+            <select class="form-select" id="maquina" name="maquina">
+                <option value="">Todas</option>
+                {% for maquina in maquinas %}
+                <option value="{{ maquina.nombre }}" 
+                        {{ 'selected' if filters.maquina == maquina.nombre }}>
+                    {{ maquina.nombre }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-1 d-flex align-items-end">
+            <div class="btn-group w-100" role="group">
+                <button type="submit" class="btn btn-outline-primary" title="Filtrar">
+                    <i class="fas fa-search"></i>
                 </button>
-                <a href="{{ url_for('productos') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-times"></i> Limpiar
-                </a>
+                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()" title="Limpiar">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
-<!-- Lista de productos -->
-<div class="card shadow">
-    <div class="card-header py-3">
-        <h6 class="m-0 font-weight-bold text-primary">
-            Lista de Productos ({{ productos|length }} encontrados)
-        </h6>
+<!-- Resultados -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Lista de Productos
+        </h5>
+        <span class="badge bg-primary">{{ productos|length }} productos</span>
     </div>
-    <div class="card-body">
+    <div class="card-body p-0">
         {% if productos %}
         <div class="table-responsive">
-            <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+            <table class="table table-hover mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Imagen</th>
                         <th>Descripción</th>
                         <th>Código</th>
                         <th>Categoría</th>
@@ -91,53 +102,49 @@
                     {% for producto in productos %}
                     <tr>
                         <td>
-                            <img src="/imagenes/{{ producto.id }}.jpg" 
-                                 class="product-image" 
-                                 onerror="handleImageError(this)"
-                                 alt="Producto {{ producto.id }}">
-                        </td>
-                        <td>
-                            <strong>{{ producto.descripcion }}</strong>
-                            {% if producto.notas %}
-                            <br><small class="text-muted">{{ producto.notas[:100] }}...</small>
-                            {% endif %}
+                            <div>
+                                <strong>{{ producto.descripcion }}</strong>
+                                {% if producto.notas %}
+                                <br><small class="text-muted">{{ producto.notas[:80] }}{% if producto.notas|length > 80 %}...{% endif %}</small>
+                                {% endif %}
+                            </div>
                         </td>
                         <td>
                             {% if producto.codigo %}
                                 <span class="badge bg-secondary">{{ producto.codigo }}</span>
                             {% else %}
-                                <span class="text-muted">Sin código</span>
+                                <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>
-                            {{ producto.categoria or 'Sin categoría' }}
-                            {% if producto.subcategoria %}
-                            <br><small class="text-muted">{{ producto.subcategoria }}</small>
-                            {% endif %}
+                            <div>
+                                {{ producto.categoria or '-' }}
+                                {% if producto.subcategoria %}
+                                <br><small class="text-muted">{{ producto.subcategoria }}</small>
+                                {% endif %}
+                            </div>
                         </td>
-                        <td>{{ producto.marca or 'Sin marca' }}</td>
+                        <td>{{ producto.marca or '-' }}</td>
                         <td>
                             {% if producto.stock_total >= producto.cantidad_requerida %}
-                                <span class="badge bg-success stock-badge">{{ producto.stock_total }}</span>
+                                <span class="badge bg-success">{{ producto.stock_total }}</span>
+                            {% elif producto.stock_total > 0 %}
+                                <span class="badge bg-warning">{{ producto.stock_total }}</span>
                             {% else %}
-                                <span class="badge bg-danger stock-badge">{{ producto.stock_total }}</span>
+                                <span class="badge bg-danger">0</span>
                             {% endif %}
                         </td>
                         <td>{{ producto.cantidad_requerida }}</td>
-                        <td>{{ producto.maquina or 'N/A' }}</td>
+                        <td>{{ producto.maquina or '-' }}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <a href="{{ url_for('editar_producto', id=producto.id) }}" 
-                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                   class="btn btn-sm btn-outline-primary" title="Editar producto">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 <button type="button" class="btn btn-sm btn-outline-info" 
-                                        title="Ver detalles" onclick="verDetalles({{ producto.id }})">
+                                        onclick="verDetalles({{ producto.id }})" title="Ver detalles">
                                     <i class="fas fa-eye"></i>
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-success" 
-                                        title="Gestionar stock" onclick="gestionarStock({{ producto.id }})">
-                                    <i class="fas fa-warehouse"></i>
                                 </button>
                             </div>
                         </td>
@@ -150,39 +157,42 @@
         <div class="text-center py-5">
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
             <h5 class="text-muted">No se encontraron productos</h5>
-            <p class="text-muted">Intenta ajustar los filtros o 
-                <a href="{{ url_for('nuevo_producto') }}">agregar un nuevo producto</a>
+            <p class="text-muted">
+                {% if filters.search or filters.categoria or filters.marca or filters.maquina or filters.codigo %}
+                    Intenta ajustar los filtros o 
+                    <button type="button" class="btn btn-link p-0" onclick="limpiarFiltros()">limpiar la búsqueda</button>
+                {% else %}
+                    <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Agregar primer producto
+                    </a>
+                {% endif %}
             </p>
         </div>
         {% endif %}
     </div>
 </div>
 
-<!-- Modal para detalles del producto -->
+<!-- Modal para ver detalles del producto -->
 <div class="modal fade" id="detallesModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Detalles del Producto</h5>
+                <h5 class="modal-title">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Detalles del Producto
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="detallesContent">
                 <!-- Contenido cargado dinámicamente -->
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal para gestionar stock -->
-<div class="modal fade" id="stockModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Gestionar Stock</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="stockContent">
-                <!-- Contenido cargado dinámicamente -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="editarDesdeModal">
+                    <i class="fas fa-edit me-1"></i>
+                    Editar Producto
+                </button>
             </div>
         </div>
     </div>
@@ -196,6 +206,65 @@ function verDetalles(productoId) {
     fetch(`/api/producto/${productoId}`)
         .then(response => response.json())
         .then(data => {
+            // Crear tabla de ubicaciones
+            let ubicacionesHtml = '';
+            if (data.ubicaciones && data.ubicaciones.length > 0) {
+                ubicacionesHtml = `
+                    <h6 class="mt-4 mb-3">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Ubicaciones con Stock
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Ubicación</th>
+                                    <th>Cantidad</th>
+                                    <th>Última Actualización</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.ubicaciones.forEach(ubicacion => {
+                    const fecha = new Date(ubicacion.fecha_actualizacion).toLocaleDateString('es-ES');
+                    ubicacionesHtml += `
+                        <tr>
+                            <td><span class="badge bg-info">${ubicacion.codigo}</span></td>
+                            <td><strong>${ubicacion.cantidad}</strong></td>
+                            <td><small class="text-muted">${fecha}</small></td>
+                        </tr>
+                    `;
+                });
+                
+                ubicacionesHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                ubicacionesHtml = `
+                    <h6 class="mt-4 mb-3">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Ubicaciones con Stock
+                    </h6>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Este producto no tiene stock en ninguna ubicación
+                    </div>
+                `;
+            }
+            
+            // Estado del stock
+            let estadoStock = '';
+            if (data.stock_total >= data.cantidad_requerida) {
+                estadoStock = '<span class="badge bg-success">Stock Suficiente</span>';
+            } else if (data.stock_total > 0) {
+                estadoStock = '<span class="badge bg-warning">Stock Bajo</span>';
+            } else {
+                estadoStock = '<span class="badge bg-danger">Sin Stock</span>';
+            }
+            
             document.getElementById('detallesContent').innerHTML = `
                 <div class="row">
                     <div class="col-md-4">
@@ -206,57 +275,32 @@ function verDetalles(productoId) {
                     </div>
                     <div class="col-md-8">
                         <h5>${data.descripcion}</h5>
-                        <p><strong>Código:</strong> ${data.codigo || 'Sin código'}</p>
-                        <p><strong>Categoría:</strong> ${data.categoria || 'Sin categoría'}</p>
-                        <p><strong>Subcategoría:</strong> ${data.subcategoria || 'Sin subcategoría'}</p>
-                        <p><strong>Marca:</strong> ${data.marca || 'Sin marca'}</p>
-                        <p><strong>Máquina:</strong> ${data.maquina || 'N/A'}</p>
-                        <p><strong>Cantidad requerida:</strong> ${data.cantidad_requerida}</p>
-                        <p><strong>Notas:</strong> ${data.notas || 'Sin notas'}</p>
+                        <table class="table table-sm">
+                            <tr><td><strong>ID:</strong></td><td>${data.id}</td></tr>
+                            <tr><td><strong>Código:</strong></td><td>${data.codigo || 'Sin código'}</td></tr>
+                            <tr><td><strong>Categoría:</strong></td><td>${data.categoria || 'Sin categoría'}</td></tr>
+                            <tr><td><strong>Subcategoría:</strong></td><td>${data.subcategoria || 'Sin subcategoría'}</td></tr>
+                            <tr><td><strong>Marca:</strong></td><td>${data.marca || 'Sin marca'}</td></tr>
+                            <tr><td><strong>Máquina:</strong></td><td>${data.maquina || 'N/A'}</td></tr>
+                            <tr><td><strong>Stock Total:</strong></td><td><span class="fs-5 fw-bold">${data.stock_total}</span> ${estadoStock}</td></tr>
+                            <tr><td><strong>Cantidad Requerida:</strong></td><td>${data.cantidad_requerida}</td></tr>
+                            <tr><td><strong>Notas:</strong></td><td>${data.notas || 'Sin notas'}</td></tr>
+                        </table>
                     </div>
                 </div>
+                ${ubicacionesHtml}
             `;
+            
+            // Configurar botón de editar
+            document.getElementById('editarDesdeModal').onclick = function() {
+                window.location.href = `/producto/editar/${data.id}`;
+            };
+            
             new bootstrap.Modal(document.getElementById('detallesModal')).show();
         })
         .catch(error => {
             console.error('Error:', error);
             alert('Error al cargar los detalles del producto');
-        });
-}
-
-function gestionarStock(productoId) {
-    // Cargar formulario de gestión de stock
-    fetch(`/api/producto/${productoId}/stock`)
-        .then(response => response.json())
-        .then(data => {
-            // Implementar formulario de gestión de stock
-            document.getElementById('stockContent').innerHTML = `
-                <form id="stockForm">
-                    <input type="hidden" name="producto_id" value="${productoId}">
-                    <div class="mb-3">
-                        <label class="form-label">Producto: ${data.descripcion}</label>
-                    </div>
-                    <div class="mb-3">
-                        <label for="ubicacion" class="form-label">Ubicación</label>
-                        <select class="form-select" name="ubicacion_id" required>
-                            <option value="">Seleccionar ubicación...</option>
-                            <!-- Cargar ubicaciones dinámicamente -->
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="cantidad" class="form-label">Cantidad</label>
-                        <input type="number" class="form-control" name="cantidad" min="0" required>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Actualizar Stock</button>
-                    </div>
-                </form>
-            `;
-            new bootstrap.Modal(document.getElementById('stockModal')).show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error al cargar el formulario de stock');
         });
 }
 </script>

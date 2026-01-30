@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Logs de Administrador - Inventario PPG{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-clipboard-list me-2"></i>Logs de Operaciones</h2>
+    <div class="btn-group">
+        <a href="{{ url_for('inventario') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>
+            Volver al Inventario
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-history me-2"></i>
+            Historial de Operaciones (Últimas 100)
+        </h5>
+        <span class="badge bg-primary">{{ logs|length }} registros</span>
+    </div>
+    <div class="card-body p-0">
+        {% if logs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>Administrador</th>
+                        <th>Operación</th>
+                        <th>Producto</th>
+                        <th>Ubicación</th>
+                        <th>Cambio</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>
+                            <small>{{ log.timestamp.strftime('%d/%m/%Y %H:%M:%S') if log.timestamp else 'N/A' }}</small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ log.username }}</span>
+                        </td>
+                        <td>
+                            {% if log.operation_type == 'STOCK_EDIT' %}
+                                <span class="badge bg-warning">
+                                    <i class="fas fa-edit me-1"></i>Edición Stock
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ log.operation_type }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.producto_nombre %}
+                                <small>{{ log.producto_nombre[:30] }}{% if log.producto_nombre|length > 30 %}...{% endif %}</small>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.ubicacion_codigo %}
+                                <span class="badge bg-info">{{ log.ubicacion_codigo }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.old_quantity is not none and log.new_quantity is not none %}
+                                <span class="text-danger">{{ log.old_quantity }}</span>
+                                <i class="fas fa-arrow-right mx-1"></i>
+                                <span class="text-success">{{ log.new_quantity }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ log.ip_address or 'N/A' }}</small>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-history fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay logs registrados</h5>
+            <p class="text-muted">Las operaciones de administrador aparecerán aquí</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if logs %}
+<div class="mt-4">
+    <div class="card">
+        <div class="card-body">
+            <h6><i class="fas fa-info-circle me-2"></i>Información</h6>
+            <ul class="mb-0">
+                <li>Los logs se mantienen permanentemente para auditoría</li>
+                <li>Cada operación incluye timestamp, usuario, IP y detalles del cambio</li>
+                <li>Los archivos de log también se guardan en <code>admin_operations.log</code></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
