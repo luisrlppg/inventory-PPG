@@ -4,17 +4,33 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2><i class="fas fa-boxes me-2"></i>Productos</h2>
-    <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-        <i class="fas fa-plus me-1"></i>
-        Nuevo Producto
-    </a>
+    <div>
+        <h2><i class="fas fa-boxes me-2"></i>Productos</h2>
+        {% if filters.stock == 'sin_stock' %}
+        <small class="text-muted">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Mostrando solo productos sin stock
+        </small>
+        {% endif %}
+    </div>
+    <div class="btn-group">
+        {% if filters.stock != 'sin_stock' %}
+        <a href="{{ url_for('productos') }}?stock=sin_stock" class="btn btn-outline-warning">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Ver Sin Stock
+        </a>
+        {% endif %}
+        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Nuevo Producto
+        </a>
+    </div>
 </div>
 
 <!-- Filtros -->
 <div class="filter-card">
     <form method="GET" id="filtrosForm" class="row g-3">
-        <div class="col-md-3">
+        <div class="col-md-2">
             <label for="search" class="form-label">Buscar</label>
             <input type="text" class="form-control" id="search" name="search" 
                    value="{{ filters.search }}" placeholder="Descripción, código o notas...">
@@ -60,15 +76,27 @@
                 {% endfor %}
             </select>
         </div>
-        <div class="col-md-1 d-flex align-items-end">
-            <div class="btn-group w-100" role="group">
+        <div class="col-md-2">
+            <label for="stock" class="form-label">Estado Stock</label>
+            <select class="form-select" id="stock" name="stock">
+                <option value="">Todos</option>
+                <option value="sin_stock" {{ 'selected' if filters.stock == 'sin_stock' }}>Sin Stock (0)</option>
+                <option value="stock_bajo" {{ 'selected' if filters.stock == 'stock_bajo' }}>Stock Bajo</option>
+                <option value="con_stock" {{ 'selected' if filters.stock == 'con_stock' }}>Con Stock</option>
+            </select>
+        </div>
+        <div class="col-12 d-flex justify-content-between align-items-end">
+            <div class="btn-group" role="group">
                 <button type="submit" class="btn btn-outline-primary" title="Filtrar">
-                    <i class="fas fa-search"></i>
+                    <i class="fas fa-search me-1"></i>Filtrar
                 </button>
                 <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()" title="Limpiar">
-                    <i class="fas fa-times"></i>
+                    <i class="fas fa-times me-1"></i>Limpiar
                 </button>
             </div>
+            <button type="button" class="btn btn-success" onclick="exportarDatos()" title="Exportar datos filtrados">
+                <i class="fas fa-download me-1"></i>Exportar CSV
+            </button>
         </div>
     </form>
 </div>
@@ -302,6 +330,30 @@ function verDetalles(productoId) {
             console.error('Error:', error);
             alert('Error al cargar los detalles del producto');
         });
+}
+
+function exportarDatos() {
+    // Obtener parámetros actuales de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Construir URL de exportación con los mismos filtros
+    const exportUrl = '/exportar/productos?' + urlParams.toString();
+    
+    // Descargar archivo
+    window.location.href = exportUrl;
+}
+
+function limpiarFiltros() {
+    // Limpiar todos los campos específicos de productos
+    document.getElementById('search').value = '';
+    document.getElementById('codigo').value = '';
+    document.getElementById('categoria').value = '';
+    document.getElementById('marca').value = '';
+    document.getElementById('maquina').value = '';
+    document.getElementById('stock').value = '';
+    
+    // Enviar formulario inmediatamente
+    document.getElementById('filtrosForm').submit();
 }
 </script>
 {% endblock %}

@@ -46,6 +46,9 @@
                     <button type="button" class="btn btn-outline-secondary btn-lg" onclick="limpiarFiltros()" title="Limpiar">
                         <i class="fas fa-times"></i>
                     </button>
+                    <button type="button" class="btn btn-success btn-lg" onclick="exportarInventario()" title="Exportar inventario">
+                        <i class="fas fa-download"></i>
+                    </button>
                 </div>
             </div>
         </form>
@@ -154,17 +157,15 @@
         {% else %}
         <div class="text-center py-5">
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
-            <h5 class="text-muted">No se encontraron productos</h5>
+            <h5 class="text-muted">No se encontraron productos con stock</h5>
             <p class="text-muted">
                 {% if filters.search or filters.categoria %}
                     Intenta ajustar la búsqueda o 
                     <button type="button" class="btn btn-link p-0" onclick="limpiarFiltros()">limpiar los filtros</button>
                 {% else %}
-                    No hay productos en el sistema. 
-                    <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i>
-                        Agregar primer producto
-                    </a>
+                    Solo se muestran productos con stock mayor a 0.
+                    <br>Para ver productos sin stock, ve a la sección 
+                    <a href="{{ url_for('productos') }}?stock=sin_stock" class="btn btn-link p-0">Productos</a>
                 {% endif %}
             </p>
         </div>
@@ -553,8 +554,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function limpiarFiltros() {
+    // Limpiar campos específicos del inventario
     document.getElementById('search').value = '';
     document.getElementById('categoria').value = '';
+    
+    // Enviar formulario inmediatamente
     document.getElementById('filtrosForm').submit();
 }
 
@@ -717,5 +721,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 {% endif %}
+
+function exportarInventario() {
+    // Obtener parámetros actuales de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Construir URL de exportación con los mismos filtros
+    const exportUrl = '/exportar/inventario?' + urlParams.toString();
+    
+    // Descargar archivo
+    window.location.href = exportUrl;
+}
 </script>
 {% endblock %}

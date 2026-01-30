@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response
 import sqlite3
 import os
 import hashlib
 import secrets
 import logging
+import csv
+import io
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -188,6 +190,7 @@ def productos():
     marca_filter = request.args.get('marca', '')
     maquina_filter = request.args.get('maquina', '')
     codigo_filter = request.args.get('codigo', '').strip()
+    stock_filter = request.args.get('stock', '')  # Nuevo filtro de stock
     
     # Construir query con filtros
     query = '''
@@ -230,7 +233,17 @@ def productos():
         query += ' AND p.codigo LIKE ?'
         params.append(f'%{codigo_filter}%')
     
-    query += ' GROUP BY p.id ORDER BY p.descripcion'
+    query += ' GROUP BY p.id'
+    
+    # Aplicar filtro de stock después del GROUP BY
+    if stock_filter == 'sin_stock':
+        query += ' HAVING stock_total = 0'
+    elif stock_filter == 'con_stock':
+        query += ' HAVING stock_total > 0'
+    elif stock_filter == 'stock_bajo':
+        query += ' HAVING stock_total > 0 AND stock_total < p.cantidad_requerida'
+    
+    query += ' ORDER BY p.descripcion'
     
     productos = conn.execute(query, params).fetchall()
     
@@ -254,19 +267,20 @@ def productos():
                              'subcategoria': subcategoria_filter,
                              'marca': marca_filter,
                              'maquina': maquina_filter,
-                             'codigo': codigo_filter
+                             'codigo': codigo_filter,
+                             'stock': stock_filter
                          })
 
 @app.route('/inventario')
 def inventario():
-    """Vista del inventario - lista simple de todos los productos"""
+    """Vista del inventario - lista simple de productos con stock > 0"""
     conn = get_db_connection()
     
     # Obtener filtros
     search = request.args.get('search', '').strip()
     categoria_filter = request.args.get('categoria', '')
     
-    # Query para obtener todos los productos con su stock total
+    # Query para obtener solo productos con stock > 0
     query = '''
         SELECT p.*, c.nombre as categoria, sc.nombre as subcategoria, 
                m.nombre as marca, mq.nombre as maquina,
@@ -293,7 +307,7 @@ def inventario():
         query += ' AND c.nombre = ?'
         params.append(categoria_filter)
     
-    query += ' GROUP BY p.id ORDER BY p.descripcion'
+    query += ' GROUP BY p.id HAVING stock_total > 0 ORDER BY p.descripcion'
     
     productos = conn.execute(query, params).fetchall()
     
@@ -620,6 +634,204 @@ def api_producto(id):
     resultado['ubicaciones'] = [dict(ub) for ub in ubicaciones_stock]
     
     return jsonify(resultado)
+
+@app.route('/exportar/productos')
+def exportar_productos():
+    """Exportar productos filtrados a CSV"""
+    conn = get_db_connection()
+    
+    # Obtener los mismos filtros que en la vista de productos
+    search = request.args.get('search', '').strip()
+    categoria_filter = request.args.get('categoria', '')
+    subcategoria_filter = request.args.get('subcategoria', '')
+    marca_filter = request.args.get('marca', '')
+    maquina_filter = request.args.get('maquina', '')
+    codigo_filter = request.args.get('codigo', '').strip()
+    stock_filter = request.args.get('stock', '')
+    
+    # Misma query que en productos()
+    query = '''
+        SELECT p.id, p.descripcion, p.codigo, c.nombre as categoria, sc.nombre as subcategoria, 
+               m.nombre as marca, mq.nombre as maquina, p.cantidad_requerida, p.notas,
+               COALESCE(SUM(i.cantidad), 0) as stock_total
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
+        LEFT JOIN marcas m ON p.marca_id = m.id
+        LEFT JOIN maquinas mq ON p.maquina_id = mq.id
+        LEFT JOIN inventario i ON p.id = i.producto_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND (p.descripcion LIKE ? OR p.codigo LIKE ? OR p.notas LIKE ?)'
+        search_param = f'%{search}%'
+        params.extend([search_param, search_param, search_param])
+    
+    if categoria_filter:
+        query += ' AND c.nombre = ?'
+        params.append(categoria_filter)
+    
+    if subcategoria_filter:
+        query += ' AND sc.nombre = ?'
+        params.append(subcategoria_filter)
+    
+    if marca_filter:
+        query += ' AND m.nombre = ?'
+        params.append(marca_filter)
+    
+    if maquina_filter:
+        query += ' AND mq.nombre = ?'
+        params.append(maquina_filter)
+    
+    if codigo_filter:
+        query += ' AND p.codigo LIKE ?'
+        params.append(f'%{codigo_filter}%')
+    
+    query += ' GROUP BY p.id'
+    
+    if stock_filter == 'sin_stock':
+        query += ' HAVING stock_total = 0'
+    elif stock_filter == 'con_stock':
+        query += ' HAVING stock_total > 0'
+    elif stock_filter == 'stock_bajo':
+        query += ' HAVING stock_total > 0 AND stock_total < p.cantidad_requerida'
+    
+    query += ' ORDER BY p.descripcion'
+    
+    productos = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    # Crear CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Encabezados
+    writer.writerow([
+        'ID', 'Descripción', 'Código', 'Categoría', 'Subcategoría', 
+        'Marca', 'Máquina', 'Stock Total', 'Cantidad Requerida', 'Estado Stock', 'Notas'
+    ])
+    
+    # Datos
+    for producto in productos:
+        estado_stock = 'Sin Stock'
+        if producto['stock_total'] >= producto['cantidad_requerida']:
+            estado_stock = 'Stock OK'
+        elif producto['stock_total'] > 0:
+            estado_stock = 'Stock Bajo'
+        
+        writer.writerow([
+            producto['id'],
+            producto['descripcion'],
+            producto['codigo'] or '',
+            producto['categoria'] or '',
+            producto['subcategoria'] or '',
+            producto['marca'] or '',
+            producto['maquina'] or '',
+            producto['stock_total'],
+            producto['cantidad_requerida'],
+            estado_stock,
+            producto['notas'] or ''
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'productos_{timestamp}.csv'
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    return response
+
+@app.route('/exportar/inventario')
+def exportar_inventario():
+    """Exportar inventario filtrado a CSV"""
+    conn = get_db_connection()
+    
+    # Obtener los mismos filtros que en la vista de inventario
+    search = request.args.get('search', '').strip()
+    categoria_filter = request.args.get('categoria', '')
+    
+    # Misma query que en inventario() pero con más detalles para export
+    query = '''
+        SELECT p.id, p.descripcion, p.codigo, c.nombre as categoria, sc.nombre as subcategoria, 
+               m.nombre as marca, mq.nombre as maquina, p.cantidad_requerida, p.notas,
+               COALESCE(SUM(i.cantidad), 0) as stock_total,
+               GROUP_CONCAT(u.codigo || ':' || i.cantidad, ', ') as ubicaciones_detalle
+        FROM productos p
+        LEFT JOIN categorias c ON p.categoria_id = c.id
+        LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
+        LEFT JOIN marcas m ON p.marca_id = m.id
+        LEFT JOIN maquinas mq ON p.maquina_id = mq.id
+        LEFT JOIN inventario i ON p.id = i.producto_id
+        LEFT JOIN ubicaciones u ON i.ubicacion_id = u.id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND (p.descripcion LIKE ? OR p.codigo LIKE ? OR c.nombre LIKE ?)'
+        search_param = f'%{search}%'
+        params.extend([search_param, search_param, search_param])
+    
+    if categoria_filter:
+        query += ' AND c.nombre = ?'
+        params.append(categoria_filter)
+    
+    query += ' GROUP BY p.id HAVING stock_total > 0 ORDER BY p.descripcion'
+    
+    productos = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    # Crear CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Encabezados
+    writer.writerow([
+        'ID', 'Descripción', 'Código', 'Categoría', 'Subcategoría', 
+        'Marca', 'Máquina', 'Stock Total', 'Cantidad Requerida', 'Estado Stock', 
+        'Ubicaciones (Código:Cantidad)', 'Notas'
+    ])
+    
+    # Datos
+    for producto in productos:
+        estado_stock = 'Sin Stock'
+        if producto['stock_total'] >= producto['cantidad_requerida']:
+            estado_stock = 'Stock OK'
+        elif producto['stock_total'] > 0:
+            estado_stock = 'Stock Bajo'
+        
+        writer.writerow([
+            producto['id'],
+            producto['descripcion'],
+            producto['codigo'] or '',
+            producto['categoria'] or '',
+            producto['subcategoria'] or '',
+            producto['marca'] or '',
+            producto['maquina'] or '',
+            producto['stock_total'],
+            producto['cantidad_requerida'],
+            estado_stock,
+            producto['ubicaciones_detalle'] or '',
+            producto['notas'] or ''
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'inventario_{timestamp}.csv'
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    return response
 
 # Servir imágenes estáticas
 @app.route('/imagenes/<filename>')

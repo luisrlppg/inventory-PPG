@@ -146,7 +146,17 @@
         function limpiarFiltros() {
             const form = document.getElementById('filtrosForm');
             if (form) {
-                form.reset();
+                // Limpiar todos los campos del formulario
+                const inputs = form.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    if (input.type === 'text' || input.type === 'search') {
+                        input.value = '';
+                    } else if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0; // Seleccionar primera opción (vacía)
+                    }
+                });
+                
+                // Enviar formulario inmediatamente
                 form.submit();
             }
         }
