@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response, send_file
 import sqlite3
 import os
 import hashlib
@@ -6,11 +6,15 @@ import secrets
 import logging
 import csv
 import io
+import shutil
+import tempfile
 from datetime import datetime, timedelta
 from functools import wraps
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'tu_clave_secreta_aqui'
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
 
 # Configuración de logging
 logging.basicConfig(
@@ -905,6 +909,124 @@ def eliminar_ubicacion(id):
         conn.close()
     
     return redirect(url_for('ubicaciones'))
+
+@app.route('/admin/backup/descargar')
+@require_admin
+def descargar_backup():
+    """Descargar backup de la base de datos"""
+    try:
+        # Crear nombre del archivo con timestamp
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_filename = f'inventario_backup_{timestamp}.db'
+        
+        # Crear copia temporal de la base de datos
+        temp_dir = tempfile.gettempdir()
+        temp_backup_path = os.path.join(temp_dir, backup_filename)
+        
+        # Copiar la base de datos actual
+        shutil.copy2(DATABASE, temp_backup_path)
+        
+        # Log de la operación
+        log_admin_operation(
+            operation_type='BACKUP_DOWNLOAD',
+            description=f'Backup descargado: {backup_filename}'
+        )
+        
+        # Enviar archivo y eliminar temporal después
+        def remove_file(response):
+            try:
+                os.remove(temp_backup_path)
+            except Exception:
+                pass
+            return response
+        
+        return send_file(
+            temp_backup_path,
+            as_attachment=True,
+            download_name=backup_filename,
+            mimetype='application/octet-stream'
+        )
+        
+    except Exception as e:
+        flash(f'Error al crear backup: {str(e)}', 'error')
+        logging.error(f"Error creating backup: {str(e)}")
+        return redirect(url_for('inventario'))
+
+@app.route('/admin/backup/restaurar', methods=['POST'])
+@require_admin
+def restaurar_backup():
+    """Restaurar base de datos desde backup"""
+    try:
+        # Verificar que se subió un archivo
+        if 'backup_file' not in request.files:
+            flash('No se seleccionó ningún archivo', 'error')
+            return redirect(url_for('inventario'))
+        
+        file = request.files['backup_file']
+        motivo = request.form.get('motivo', 'Sin motivo especificado')
+        
+        if file.filename == '':
+            flash('No se seleccionó ningún archivo', 'error')
+            return redirect(url_for('inventario'))
+        
+        # Verificar extensión del archivo
+        if not file.filename.lower().endswith('.db'):
+            flash('El archivo debe tener extensión .db', 'error')
+            return redirect(url_for('inventario'))
+        
+        # Crear backup de seguridad antes de restaurar
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_before_restore = f'inventario_before_restore_{timestamp}.db'
+        shutil.copy2(DATABASE, backup_before_restore)
+        
+        # Guardar archivo temporal
+        temp_dir = tempfile.gettempdir()
+        temp_filename = secure_filename(file.filename)
+        temp_path = os.path.join(temp_dir, temp_filename)
+        file.save(temp_path)
+        
+        # Verificar que el archivo es una base de datos SQLite válida
+        try:
+            test_conn = sqlite3.connect(temp_path)
+            # Verificar que tiene las tablas principales
+            cursor = test_conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='productos'")
+            if not cursor.fetchone():
+                raise Exception("El archivo no parece ser un backup válido del sistema")
+            test_conn.close()
+        except Exception as e:
+            os.remove(temp_path)
+            flash(f'El archivo no es un backup válido: {str(e)}', 'error')
+            return redirect(url_for('inventario'))
+        
+        # Cerrar todas las conexiones existentes (importante para evitar locks)
+        # Esto se hace reemplazando el archivo directamente
+        
+        # Reemplazar la base de datos actual
+        shutil.copy2(temp_path, DATABASE)
+        
+        # Limpiar archivo temporal
+        os.remove(temp_path)
+        
+        # Log de la operación (usando nueva base de datos)
+        log_admin_operation(
+            operation_type='BACKUP_RESTORE',
+            description=f'Base de datos restaurada desde {file.filename}. Motivo: {motivo}. Backup previo guardado como: {backup_before_restore}'
+        )
+        
+        flash(f'Base de datos restaurada exitosamente desde {file.filename}. Se creó un backup de seguridad: {backup_before_restore}', 'success')
+        
+    except Exception as e:
+        flash(f'Error al restaurar backup: {str(e)}', 'error')
+        logging.error(f"Error restoring backup: {str(e)}")
+    
+    return redirect(url_for('inventario'))
+
+@app.errorhandler(413)
+def too_large(e):
+    """Handle file too large error"""
+    flash('El archivo es demasiado grande. Tamaño máximo permitido: 100MB', 'error')
+    return redirect(url_for('inventario'))
 
 @app.route('/exportar/productos')
 def exportar_productos():
