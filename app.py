@@ -27,8 +27,12 @@ DATABASE = 'inventario.db'
 
 def get_db_connection():
     """Obtener conexión a la base de datos"""
-    conn = sqlite3.connect(DATABASE)
+    conn = sqlite3.connect(DATABASE, timeout=20.0)
     conn.row_factory = sqlite3.Row
+    # Enable WAL mode for better concurrent access
+    conn.execute('PRAGMA journal_mode=WAL')
+    # Set busy timeout
+    conn.execute('PRAGMA busy_timeout=20000')
     return conn
 
 def hash_password(password):
@@ -73,25 +77,38 @@ def require_admin(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def log_admin_operation(operation_type, description, producto_id=None, ubicacion_id=None, old_quantity=None, new_quantity=None):
+def log_admin_operation(operation_type, description, producto_id=None, ubicacion_id=None, old_quantity=None, new_quantity=None, conn=None):
     """Registrar operación de administrador en logs"""
     if not is_admin_logged_in():
         return
     
-    conn = get_db_connection()
-    ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', 'unknown'))
+    # Use existing connection if provided, otherwise create new one
+    should_close_conn = False
+    if conn is None:
+        conn = get_db_connection()
+        should_close_conn = True
     
-    conn.execute('''
-        INSERT INTO operation_logs (admin_user_id, operation_type, producto_id, ubicacion_id, 
-                                  old_quantity, new_quantity, description, ip_address)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (session.get('admin_user_id'), operation_type, producto_id, ubicacion_id, 
-          old_quantity, new_quantity, description, ip_address))
-    conn.commit()
-    conn.close()
-    
-    # Log también en archivo
-    logging.info(f"ADMIN_OP: {session.get('admin_username')} - {operation_type} - {description}")
+    try:
+        ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', 'unknown'))
+        
+        conn.execute('''
+            INSERT INTO operation_logs (admin_user_id, operation_type, producto_id, ubicacion_id, 
+                                      old_quantity, new_quantity, description, ip_address)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (session.get('admin_user_id'), operation_type, producto_id, ubicacion_id, 
+              old_quantity, new_quantity, description, ip_address))
+        
+        if should_close_conn:
+            conn.commit()
+        
+        # Log también en archivo
+        logging.info(f"ADMIN_OP: {session.get('admin_username')} - {operation_type} - {description}")
+        
+    except Exception as e:
+        logging.error(f"Error logging admin operation: {e}")
+    finally:
+        if should_close_conn:
+            conn.close()
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -560,6 +577,94 @@ def salida_stock():
     conn.close()
     return redirect(url_for('inventario'))
 
+@app.route('/inventario/cambio-ubicacion', methods=['POST'])
+def cambio_ubicacion():
+    """Cambiar producto de una ubicación a otra"""
+    conn = get_db_connection()
+    
+    try:
+        producto_id = request.form['producto_id']
+        ubicacion_origen_id = request.form['ubicacion_origen_id']
+        ubicacion_destino_codigo = request.form['ubicacion_destino_id']
+        cantidad_mover = int(request.form['cantidad'])
+        motivo = request.form['motivo']
+        
+        # Obtener información del producto
+        producto = conn.execute('SELECT descripcion FROM productos WHERE id = ?', (producto_id,)).fetchone()
+        if not producto:
+            flash('Producto no encontrado', 'error')
+            return redirect(url_for('inventario'))
+        
+        # Verificar stock disponible en ubicación origen
+        stock_origen = conn.execute('SELECT cantidad FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
+                                   (producto_id, ubicacion_origen_id)).fetchone()
+        
+        if not stock_origen or stock_origen['cantidad'] < cantidad_mover:
+            flash('Error: No hay suficiente stock disponible en la ubicación origen', 'error')
+            return redirect(url_for('inventario'))
+        
+        # Obtener información de ubicación origen
+        ubicacion_origen = conn.execute('SELECT codigo FROM ubicaciones WHERE id = ?', (ubicacion_origen_id,)).fetchone()
+        
+        # Obtener o crear ubicación destino
+        ubicacion_destino = conn.execute('SELECT id FROM ubicaciones WHERE codigo = ?', (ubicacion_destino_codigo,)).fetchone()
+        if not ubicacion_destino:
+            conn.execute('INSERT INTO ubicaciones (codigo, nombre) VALUES (?, ?)', 
+                        (ubicacion_destino_codigo, ubicacion_destino_codigo))
+            ubicacion_destino_id = conn.lastrowid
+        else:
+            ubicacion_destino_id = ubicacion_destino['id']
+        
+        # Actualizar stock en ubicación origen
+        nueva_cantidad_origen = stock_origen['cantidad'] - cantidad_mover
+        if nueva_cantidad_origen == 0:
+            # Si queda en 0, eliminar el registro
+            conn.execute('DELETE FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
+                        (producto_id, ubicacion_origen_id))
+        else:
+            # Actualizar cantidad
+            conn.execute('UPDATE inventario SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', 
+                        (nueva_cantidad_origen, producto_id, ubicacion_origen_id))
+        
+        # Actualizar o insertar stock en ubicación destino
+        stock_destino = conn.execute('SELECT cantidad FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
+                                   (producto_id, ubicacion_destino_id)).fetchone()
+        
+        if stock_destino:
+            # Si ya existe stock en destino, sumar
+            nueva_cantidad_destino = stock_destino['cantidad'] + cantidad_mover
+            conn.execute('UPDATE inventario SET cantidad = ? WHERE producto_id = ? AND ubicacion_id = ?', 
+                        (nueva_cantidad_destino, producto_id, ubicacion_destino_id))
+        else:
+            # Crear nuevo registro en destino
+            conn.execute('INSERT INTO inventario (producto_id, ubicacion_id, cantidad) VALUES (?, ?, ?)', 
+                        (producto_id, ubicacion_destino_id, cantidad_mover))
+        
+        conn.commit()
+        
+        # Mensaje de éxito
+        flash(f'Cambio de ubicación exitoso: {cantidad_mover} unidades de "{producto["descripcion"]}" movidas de {ubicacion_origen["codigo"]} a {ubicacion_destino_codigo}. Motivo: {motivo}', 'success')
+        
+        # Log de administrador si está logueado
+        if is_admin_logged_in():
+            log_admin_operation(
+                operation_type='LOCATION_CHANGE',
+                description=f'Cambio de ubicación: {producto["descripcion"]} - {cantidad_mover} unidades de {ubicacion_origen["codigo"]} a {ubicacion_destino_codigo}',
+                producto_id=producto_id,
+                ubicacion_id=ubicacion_origen_id,
+                old_quantity=stock_origen['cantidad'],
+                new_quantity=nueva_cantidad_origen,
+                conn=conn
+            )
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al realizar cambio de ubicación: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('inventario'))
+
 @app.route('/api/producto/<int:id>/ubicaciones-stock')
 def api_ubicaciones_stock(id):
     """API para obtener ubicaciones con stock de un producto específico"""
@@ -634,6 +739,172 @@ def api_producto(id):
     resultado['ubicaciones'] = [dict(ub) for ub in ubicaciones_stock]
     
     return jsonify(resultado)
+
+@app.route('/ubicaciones')
+def ubicaciones():
+    """Vista de gestión de ubicaciones"""
+    conn = get_db_connection()
+    
+    # Obtener filtros
+    search = request.args.get('search', '').strip()
+    
+    # Query para obtener ubicaciones con información de stock
+    query = '''
+        SELECT u.id, u.codigo, u.nombre, u.fecha_creacion,
+               COUNT(DISTINCT i.producto_id) as productos_count,
+               COALESCE(SUM(i.cantidad), 0) as stock_total
+        FROM ubicaciones u
+        LEFT JOIN inventario i ON u.id = i.ubicacion_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND (u.codigo LIKE ? OR u.nombre LIKE ?)'
+        search_param = f'%{search}%'
+        params.extend([search_param, search_param])
+    
+    query += ' GROUP BY u.id ORDER BY u.codigo'
+    
+    ubicaciones = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    return render_template('ubicaciones.html', 
+                         ubicaciones=ubicaciones,
+                         filters={'search': search})
+
+@app.route('/ubicacion/nueva')
+def nueva_ubicacion():
+    """Formulario para nueva ubicación"""
+    return render_template('ubicacion_form.html')
+
+@app.route('/ubicacion/editar/<int:id>')
+def editar_ubicacion(id):
+    """Formulario para editar ubicación"""
+    conn = get_db_connection()
+    
+    ubicacion = conn.execute('SELECT * FROM ubicaciones WHERE id = ?', (id,)).fetchone()
+    
+    if not ubicacion:
+        flash('Ubicación no encontrada', 'error')
+        return redirect(url_for('ubicaciones'))
+    
+    # Obtener productos en esta ubicación
+    productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo, i.cantidad
+        FROM inventario i
+        JOIN productos p ON i.producto_id = p.id
+        WHERE i.ubicacion_id = ?
+        ORDER BY p.descripcion
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    return render_template('ubicacion_form.html', ubicacion=ubicacion, productos=productos)
+
+@app.route('/ubicacion/guardar', methods=['POST'])
+def guardar_ubicacion():
+    """Guardar ubicación nueva o editada"""
+    conn = get_db_connection()
+    
+    try:
+        codigo = request.form['codigo'].strip()
+        nombre = request.form['nombre'].strip()
+        ubicacion_id = request.form.get('ubicacion_id')
+        
+        if not codigo:
+            flash('El código de ubicación es requerido', 'error')
+            return redirect(url_for('ubicaciones'))
+        
+        # Verificar que el código no esté en uso por otra ubicación
+        existing = conn.execute('SELECT id FROM ubicaciones WHERE codigo = ? AND id != ?', 
+                               (codigo, ubicacion_id or 0)).fetchone()
+        
+        if existing:
+            flash(f'El código "{codigo}" ya está en uso por otra ubicación', 'error')
+            return redirect(url_for('ubicaciones'))
+        
+        if ubicacion_id:  # Editar ubicación existente
+            conn.execute('''
+                UPDATE ubicaciones 
+                SET codigo=?, nombre=?
+                WHERE id=?
+            ''', (codigo, nombre, ubicacion_id))
+            flash('Ubicación actualizada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='LOCATION_EDIT',
+                    description=f'Ubicación editada: {codigo} - {nombre}',
+                    ubicacion_id=ubicacion_id,
+                    conn=conn
+                )
+        else:  # Crear nueva ubicación
+            conn.execute('''
+                INSERT INTO ubicaciones (codigo, nombre)
+                VALUES (?, ?)
+            ''', (codigo, nombre))
+            nueva_ubicacion_id = conn.lastrowid
+            flash('Ubicación creada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='LOCATION_CREATE',
+                    description=f'Nueva ubicación creada: {codigo} - {nombre}',
+                    ubicacion_id=nueva_ubicacion_id,
+                    conn=conn
+                )
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al guardar ubicación: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('ubicaciones'))
+
+@app.route('/ubicacion/eliminar/<int:id>', methods=['POST'])
+def eliminar_ubicacion(id):
+    """Eliminar ubicación (solo si no tiene stock)"""
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que no tenga stock
+        stock = conn.execute('SELECT COUNT(*) as count FROM inventario WHERE ubicacion_id = ?', (id,)).fetchone()
+        
+        if stock['count'] > 0:
+            flash('No se puede eliminar una ubicación que tiene productos en stock', 'error')
+        else:
+            ubicacion = conn.execute('SELECT codigo, nombre FROM ubicaciones WHERE id = ?', (id,)).fetchone()
+            
+            if ubicacion:
+                conn.execute('DELETE FROM ubicaciones WHERE id = ?', (id,))
+                conn.commit()
+                
+                flash(f'Ubicación "{ubicacion["codigo"]}" eliminada exitosamente', 'success')
+                
+                # Log de administrador si está logueado
+                if is_admin_logged_in():
+                    log_admin_operation(
+                        operation_type='LOCATION_DELETE',
+                        description=f'Ubicación eliminada: {ubicacion["codigo"]} - {ubicacion["nombre"]}',
+                        ubicacion_id=id,
+                        conn=conn
+                    )
+            else:
+                flash('Ubicación no encontrada', 'error')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al eliminar ubicación: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('ubicaciones'))
 
 @app.route('/exportar/productos')
 def exportar_productos():
@@ -826,6 +1097,104 @@ def exportar_inventario():
     output.seek(0)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f'inventario_{timestamp}.csv'
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    return response
+
+@app.route('/api/ubicacion/<int:id>')
+def api_ubicacion(id):
+    """API para obtener detalles de una ubicación"""
+    conn = get_db_connection()
+    
+    # Obtener información de la ubicación
+    ubicacion = conn.execute('''
+        SELECT u.*, COUNT(DISTINCT i.producto_id) as productos_count,
+               COALESCE(SUM(i.cantidad), 0) as stock_total
+        FROM ubicaciones u
+        LEFT JOIN inventario i ON u.id = i.ubicacion_id
+        WHERE u.id = ?
+        GROUP BY u.id
+    ''', (id,)).fetchone()
+    
+    if not ubicacion:
+        conn.close()
+        return jsonify({'error': 'Ubicación no encontrada'}), 404
+    
+    # Obtener productos en esta ubicación
+    productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo, i.cantidad
+        FROM inventario i
+        JOIN productos p ON i.producto_id = p.id
+        WHERE i.ubicacion_id = ?
+        ORDER BY p.descripcion
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    
+    # Preparar respuesta
+    resultado = dict(ubicacion)
+    resultado['productos'] = [dict(prod) for prod in productos]
+    resultado['fecha_creacion'] = ubicacion['fecha_creacion'] if ubicacion['fecha_creacion'] else None
+    
+    return jsonify(resultado)
+
+@app.route('/exportar/ubicaciones')
+def exportar_ubicaciones():
+    """Exportar ubicaciones filtradas a CSV"""
+    conn = get_db_connection()
+    
+    # Obtener los mismos filtros que en la vista de ubicaciones
+    search = request.args.get('search', '').strip()
+    
+    # Misma query que en ubicaciones()
+    query = '''
+        SELECT u.id, u.codigo, u.nombre, u.fecha_creacion,
+               COUNT(DISTINCT i.producto_id) as productos_count,
+               COALESCE(SUM(i.cantidad), 0) as stock_total
+        FROM ubicaciones u
+        LEFT JOIN inventario i ON u.id = i.ubicacion_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND (u.codigo LIKE ? OR u.nombre LIKE ?)'
+        search_param = f'%{search}%'
+        params.extend([search_param, search_param])
+    
+    query += ' GROUP BY u.id ORDER BY u.codigo'
+    
+    ubicaciones = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    # Crear CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Encabezados
+    writer.writerow([
+        'ID', 'Código', 'Nombre', 'Productos', 'Stock Total', 'Fecha Creación'
+    ])
+    
+    # Datos
+    for ubicacion in ubicaciones:
+        writer.writerow([
+            ubicacion['id'],
+            ubicacion['codigo'],
+            ubicacion['nombre'] or '',
+            ubicacion['productos_count'],
+            ubicacion['stock_total'],
+            ubicacion['fecha_creacion'] or ''
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'ubicaciones_{timestamp}.csv'
     
     response = make_response(output.getvalue())
     response.headers['Content-Type'] = 'text/csv; charset=utf-8'

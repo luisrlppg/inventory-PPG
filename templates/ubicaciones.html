@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Ubicaciones - Inventario PPG{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-map-marker-alt me-2"></i>Ubicaciones</h2>
+    <a href="{{ url_for('nueva_ubicacion') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-1"></i>
+        Nueva Ubicación
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <form method="GET" id="filtrosForm" class="row g-3">
+        <div class="col-md-6">
+            <label for="search" class="form-label">Buscar Ubicación</label>
+            <input type="text" class="form-control" id="search" name="search" 
+                   value="{{ filters.search }}" placeholder="Código o nombre de ubicación...">
+        </div>
+        <div class="col-md-6 d-flex align-items-end">
+            <div class="btn-group w-100" role="group">
+                <button type="submit" class="btn btn-outline-primary" title="Buscar">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()" title="Limpiar">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </button>
+                <button type="button" class="btn btn-success" onclick="exportarUbicaciones()" title="Exportar ubicaciones">
+                    <i class="fas fa-download me-1"></i>Exportar CSV
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Lista de ubicaciones -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>
+            Lista de Ubicaciones
+        </h5>
+        <span class="badge bg-primary">{{ ubicaciones|length }} ubicaciones</span>
+    </div>
+    <div class="card-body p-0">
+        {% if ubicaciones %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Productos</th>
+                        <th>Stock Total</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ubicacion in ubicaciones %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-info fs-6">{{ ubicacion.codigo }}</span>
+                        </td>
+                        <td>
+                            <strong>{{ ubicacion.nombre or ubicacion.codigo }}</strong>
+                        </td>
+                        <td>
+                            {% if ubicacion.productos_count > 0 %}
+                                <span class="badge bg-success">{{ ubicacion.productos_count }} productos</span>
+                            {% else %}
+                                <span class="text-muted">Sin productos</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ubicacion.stock_total > 0 %}
+                                <span class="fs-5 fw-bold text-success">{{ ubicacion.stock_total }}</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if ubicacion.fecha_creacion %}
+                                <small class="text-muted">{{ ubicacion.fecha_creacion }}</small>
+                            {% else %}
+                                <small class="text-muted">N/A</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('editar_ubicacion', id=ubicacion.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Editar ubicación">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                        onclick="verDetallesUbicacion({{ ubicacion.id }})" title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                {% if ubicacion.productos_count == 0 %}
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="eliminarUbicacion({{ ubicacion.id }}, '{{ ubicacion.codigo }}')" title="Eliminar ubicación">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No se encontraron ubicaciones</h5>
+            <p class="text-muted">
+                {% if filters.search %}
+                    Intenta ajustar la búsqueda o 
+                    <button type="button" class="btn btn-link p-0" onclick="limpiarFiltros()">limpiar los filtros</button>
+                {% else %}
+                    <a href="{{ url_for('nueva_ubicacion') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        Crear primera ubicación
+                    </a>
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para ver detalles de ubicación -->
+<div class="modal fade" id="detallesUbicacionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    Detalles de Ubicación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesUbicacionContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="editarUbicacionDesdeModal">
+                    <i class="fas fa-edit me-1"></i>
+                    Editar Ubicación
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verDetallesUbicacion(ubicacionId) {
+    // Cargar detalles de la ubicación vía AJAX
+    fetch(`/api/ubicacion/${ubicacionId}`)
+        .then(response => response.json())
+        .then(data => {
+            let productosHtml = '';
+            if (data.productos && data.productos.length > 0) {
+                productosHtml = `
+                    <h6 class="mt-4 mb-3">
+                        <i class="fas fa-boxes me-2"></i>
+                        Productos en esta Ubicación
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Código</th>
+                                    <th>Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.productos.forEach(producto => {
+                    const codigoDisplay = producto.codigo ? producto.codigo : 'Sin código';
+                    productosHtml += `
+                        <tr>
+                            <td><strong>${producto.descripcion}</strong></td>
+                            <td>${producto.codigo ? producto.codigo : '<span class="text-muted">Sin código</span>'}</td>
+                            <td><span class="badge bg-success">${producto.cantidad}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                productosHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                productosHtml = `
+                    <h6 class="mt-4 mb-3">
+                        <i class="fas fa-boxes me-2"></i>
+                        Productos en esta Ubicación
+                    </h6>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Esta ubicación no tiene productos almacenados
+                    </div>
+                `;
+            }
+            
+            document.getElementById('detallesUbicacionContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-12">
+                        <table class="table table-sm">
+                            <tr><td><strong>Código:</strong></td><td><span class="badge bg-info">${data.codigo}</span></td></tr>
+                            <tr><td><strong>Nombre:</strong></td><td>${data.nombre || data.codigo}</td></tr>
+                            <tr><td><strong>Total de Productos:</strong></td><td><span class="badge bg-success">${data.productos_count}</span></td></tr>
+                            <tr><td><strong>Stock Total:</strong></td><td><span class="fs-5 fw-bold">${data.stock_total}</span></td></tr>
+                            <tr><td><strong>Fecha de Creación:</strong></td><td>${data.fecha_creacion || 'N/A'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                ${productosHtml}
+            `;
+            
+            // Configurar botón de editar
+            document.getElementById('editarUbicacionDesdeModal').onclick = function() {
+                window.location.href = `/ubicacion/editar/${data.id}`;
+            };
+            
+            new bootstrap.Modal(document.getElementById('detallesUbicacionModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar los detalles de la ubicación');
+        });
+}
+
+function eliminarUbicacion(ubicacionId, codigo) {
+    if (confirm(`¿Estás seguro de eliminar la ubicación "${codigo}"?\n\nEsta acción no se puede deshacer.`)) {
+        // Crear formulario para enviar DELETE
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/ubicacion/eliminar/${ubicacionId}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function exportarUbicaciones() {
+    // Obtener parámetros actuales de la URL
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // Construir URL de exportación con los mismos filtros
+    const exportUrl = '/exportar/ubicaciones?' + urlParams.toString();
+    
+    // Descargar archivo
+    window.location.href = exportUrl;
+}
+
+function limpiarFiltros() {
+    document.getElementById('search').value = '';
+    document.getElementById('filtrosForm').submit();
+}
+</script>
+{% endblock %}

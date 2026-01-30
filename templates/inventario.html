@@ -14,6 +14,10 @@
             <i class="fas fa-minus me-1"></i>
             Salida de Material
         </button>
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#cambioUbicacionModal">
+            <i class="fas fa-exchange-alt me-1"></i>
+            Cambio de Ubicación
+        </button>
     </div>
 </div>
 
@@ -170,6 +174,109 @@
             </p>
         </div>
         {% endif %}
+    </div>
+</div>
+
+<!-- Modal para cambio de ubicación -->
+<div class="modal fade" id="cambioUbicacionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title">
+                    <i class="fas fa-exchange-alt me-2"></i>
+                    Cambio de Ubicación
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('cambio_ubicacion') }}">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Cambio de Ubicación:</strong> Mueve productos de una ubicación a otra.
+                    </div>
+                    
+                    <!-- Paso 1: Seleccionar producto -->
+                    <div class="mb-3">
+                        <label for="buscar_producto_cambio" class="form-label">1. Buscar Producto</label>
+                        <input type="text" class="form-control" id="buscar_producto_cambio" 
+                               placeholder="Escribir nombre del producto..." 
+                               onkeyup="filtrarProductosCambio()">
+                        <input type="hidden" name="producto_id" id="producto_id_cambio" required>
+                        
+                        <div id="lista_productos_cambio" class="mt-2" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; display: none;">
+                            {% for producto in productos %}
+                                {% if producto.stock_total > 0 %}
+                                <div class="producto-item p-2 border-bottom" 
+                                     data-id="{{ producto.id }}" 
+                                     data-nombre="{{ producto.descripcion }}"
+                                     data-codigo="{{ producto.codigo or '' }}"
+                                     data-stock="{{ producto.stock_total }}"
+                                     onclick="seleccionarProductoCambio({{ producto.id }}, '{{ producto.descripcion }}', '{{ producto.codigo or '' }}')">
+                                    <strong>{{ producto.descripcion }}</strong>
+                                    <span class="badge bg-info ms-2">Stock: {{ producto.stock_total }}</span>
+                                    {% if producto.codigo %}
+                                    <br><small class="text-muted">Código: {{ producto.codigo }}</small>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <div id="producto_seleccionado_cambio" class="mt-2 alert alert-success" style="display: none;">
+                            <i class="fas fa-check me-2"></i>
+                            <span id="nombre_producto_cambio"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Paso 2: Seleccionar ubicación origen -->
+                    <div class="mb-3">
+                        <label for="ubicacion_origen_id" class="form-label">2. Ubicación Origen</label>
+                        <select class="form-select" name="ubicacion_origen_id" id="ubicacion_origen_id" onchange="actualizarStockOrigen()" required>
+                            <option value="">Primero selecciona un producto</option>
+                        </select>
+                        <div id="stock_origen_info" class="form-text"></div>
+                    </div>
+                    
+                    <!-- Paso 3: Cantidad a mover -->
+                    <div class="mb-3">
+                        <label for="cantidad_mover" class="form-label">3. Cantidad a Mover</label>
+                        <input type="number" class="form-control" name="cantidad" id="cantidad_mover" min="1" required>
+                        <div class="form-text">Disponible en origen: <span id="stock_disponible_origen">0</span></div>
+                    </div>
+                    
+                    <!-- Paso 4: Seleccionar ubicación destino -->
+                    <div class="mb-3">
+                        <label for="ubicacion_destino_id" class="form-label">4. Ubicación Destino</label>
+                        <select class="form-select" name="ubicacion_destino_id" id="ubicacion_destino_id" required>
+                            <option value="">Seleccionar ubicación destino...</option>
+                            {% for ubicacion in ubicaciones %}
+                            <option value="{{ ubicacion.codigo }}">{{ ubicacion.codigo }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Se creará la ubicación si no existe</div>
+                    </div>
+                    
+                    <!-- Paso 5: Motivo del cambio -->
+                    <div class="mb-3">
+                        <label for="motivo_cambio" class="form-label">5. Motivo del Cambio (Opcional)</label>
+                        <select class="form-select" name="motivo" id="motivo_cambio">
+                            <option value="reorganizacion">Reorganización</option>
+                            <option value="optimizacion">Optimización de espacio</option>
+                            <option value="mantenimiento">Mantenimiento de área</option>
+                            <option value="consolidacion">Consolidación de stock</option>
+                            <option value="otros">Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning" id="btn_confirmar_cambio" disabled>
+                        <i class="fas fa-exchange-alt me-1"></i>
+                        Confirmar Cambio
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -732,5 +839,133 @@ function exportarInventario() {
     // Descargar archivo
     window.location.href = exportUrl;
 }
+
+// Funciones para cambio de ubicación
+let ubicacionesConStockCambio = {};
+
+function filtrarProductosCambio() {
+    const busqueda = document.getElementById('buscar_producto_cambio').value.toLowerCase();
+    const listaProductos = document.getElementById('lista_productos_cambio');
+    const productosItems = listaProductos.querySelectorAll('.producto-item');
+    
+    if (busqueda.length === 0) {
+        listaProductos.style.display = 'none';
+        return;
+    }
+    
+    let hayCoincidencias = false;
+    productosItems.forEach(item => {
+        const nombre = item.getAttribute('data-nombre').toLowerCase();
+        const codigo = item.getAttribute('data-codigo').toLowerCase();
+        const stock = parseInt(item.getAttribute('data-stock'));
+        
+        // Solo mostrar productos con stock > 0
+        if (stock > 0 && (nombre.includes(busqueda) || codigo.includes(busqueda))) {
+            item.style.display = 'block';
+            hayCoincidencias = true;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+    
+    listaProductos.style.display = hayCoincidencias ? 'block' : 'none';
+}
+
+function seleccionarProductoCambio(id, nombre, codigo) {
+    document.getElementById('producto_id_cambio').value = id;
+    document.getElementById('buscar_producto_cambio').value = nombre;
+    document.getElementById('nombre_producto_cambio').textContent = nombre + (codigo ? ` (${codigo})` : '');
+    document.getElementById('producto_seleccionado_cambio').style.display = 'block';
+    document.getElementById('lista_productos_cambio').style.display = 'none';
+    
+    // Cargar ubicaciones con stock para este producto
+    cargarUbicacionesOrigenCambio();
+}
+
+function cargarUbicacionesOrigenCambio() {
+    const productoId = document.getElementById('producto_id_cambio').value;
+    const ubicacionSelect = document.getElementById('ubicacion_origen_id');
+    
+    // Limpiar ubicaciones
+    ubicacionSelect.innerHTML = '<option value="">Cargando ubicaciones...</option>';
+    
+    if (productoId) {
+        fetch(`/api/producto/${productoId}/ubicaciones-stock`)
+            .then(response => response.json())
+            .then(data => {
+                ubicacionSelect.innerHTML = '<option value="">Seleccionar ubicación origen...</option>';
+                ubicacionesConStockCambio = {};
+                
+                if (data.ubicaciones && data.ubicaciones.length > 0) {
+                    data.ubicaciones.forEach(ubicacion => {
+                        const option = document.createElement('option');
+                        option.value = ubicacion.ubicacion_id;
+                        option.textContent = `${ubicacion.codigo} - Stock: ${ubicacion.cantidad}`;
+                        ubicacionSelect.appendChild(option);
+                        
+                        // Guardar info de stock para validación
+                        ubicacionesConStockCambio[ubicacion.ubicacion_id] = ubicacion.cantidad;
+                    });
+                } else {
+                    ubicacionSelect.innerHTML = '<option value="">No hay stock disponible</option>';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                ubicacionSelect.innerHTML = '<option value="">Error al cargar ubicaciones</option>';
+            });
+    } else {
+        ubicacionSelect.innerHTML = '<option value="">Primero selecciona un producto</option>';
+    }
+}
+
+function actualizarStockOrigen() {
+    const ubicacionId = document.getElementById('ubicacion_origen_id').value;
+    const cantidadInput = document.getElementById('cantidad_mover');
+    const stockDisponibleSpan = document.getElementById('stock_disponible_origen');
+    const stockInfo = document.getElementById('stock_origen_info');
+    const btnConfirmar = document.getElementById('btn_confirmar_cambio');
+    
+    if (ubicacionId && ubicacionesConStockCambio[ubicacionId]) {
+        const stockDisponible = ubicacionesConStockCambio[ubicacionId];
+        stockDisponibleSpan.textContent = stockDisponible;
+        cantidadInput.max = stockDisponible;
+        cantidadInput.value = '';
+        stockInfo.textContent = `Stock disponible en esta ubicación: ${stockDisponible}`;
+        stockInfo.className = 'form-text text-info';
+        btnConfirmar.disabled = false;
+        
+        // Validar cantidad en tiempo real
+        cantidadInput.oninput = function() {
+            const cantidad = parseInt(this.value);
+            if (cantidad > stockDisponible) {
+                this.value = stockDisponible;
+                stockInfo.textContent = `Cantidad ajustada al máximo disponible: ${stockDisponible}`;
+                stockInfo.className = 'form-text text-warning';
+            } else if (cantidad > 0) {
+                stockInfo.textContent = `Stock disponible en esta ubicación: ${stockDisponible}`;
+                stockInfo.className = 'form-text text-info';
+            }
+        };
+    } else {
+        stockDisponibleSpan.textContent = '0';
+        cantidadInput.max = 0;
+        cantidadInput.value = '';
+        stockInfo.textContent = '';
+        btnConfirmar.disabled = true;
+    }
+}
+
+// Event listener para limpiar selección cuando se empieza a escribir de nuevo
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('buscar_producto_cambio').addEventListener('input', function() {
+        if (this.value === '') {
+            document.getElementById('producto_seleccionado_cambio').style.display = 'none';
+            document.getElementById('producto_id_cambio').value = '';
+            document.getElementById('ubicacion_origen_id').innerHTML = '<option value="">Primero selecciona un producto</option>';
+            document.getElementById('btn_confirmar_cambio').disabled = true;
+        }
+    });
+});
 </script>
 {% endblock %}

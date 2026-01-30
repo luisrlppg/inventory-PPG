@@ -38,6 +38,13 @@
             background-color: #fff3cd !important;
             border-left: 4px solid #ffc107;
         }
+        .btn-group .btn-warning {
+            border-color: #ffc107;
+        }
+        .btn-group .btn-warning:hover {
+            background-color: #e0a800;
+            border-color: #d39e00;
+        }
     </style>
 </head>
 <body class="bg-light">
@@ -65,6 +72,12 @@
                         <a class="nav-link {{ 'active' if request.endpoint == 'inventario' }}" href="{{ url_for('inventario') }}">
                             <i class="fas fa-clipboard-list me-1"></i>
                             Inventario
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ 'active' if request.endpoint == 'ubicaciones' }}" href="{{ url_for('ubicaciones') }}">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            Ubicaciones
                         </a>
                     </li>
                 </ul>
