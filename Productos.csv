@@ -1,0 +1,137 @@
+Descripcion,ID,Codigo,Categoria,SubCategoria,Marca,Notas Adicionales,,Imagen,Cantidad Requerida por Maquina,Maquina
+DSNU-16-100-PPV-A,1,19232,Cilindro Neumatico,,Festo,Cuchilla Dobladora,c:/Users/plasticosplasa/Pictures/media/image1.jpg,,1,Cepillo
+DSNU-16-50-PPV-A,2,19230,Cilindro Neumatico,,Festo,Empuja alambre adelante,c:/Users/plasticosplasa/Pictures/media/image2.jpg,,1,Cepillo
+DSNU-20-175-PPV-A,3,14321,Cilindro Neumatico,,Festo,Lengueta,c:/Users/plasticosplasa/Pictures/media/image3.jpg,,1,Cepillo
+DSNU-25-125-P-A,4,19224,Cilindro Neumatico,,Festo,Alimentador de Alambre,c:/Users/plasticosplasa/Pictures/media/image4.jpg,,1,Cepillo
+DSNU-20-160-PPV-A,5,19241,Cilindro Neumatico,,Festo,Peine (Alimentador de Cerda),c:/Users/plasticosplasa/Pictures/media/image5.jpg,,1,Cepillo
+DSNU-25-160-PPV-A,6,19250,Cilindro Neumatico,,Festo,Pudiera Reemplazar el peine o alimentador de alambre,c:/Users/plasticosplasa/Pictures/media/image6.jpg,,0,Cepillo
+DSNU-12-50-P-A,7,19192,Cilindro Neumatico,,Festo,Entra Pinza,c:/Users/plasticosplasa/Pictures/media/image7.jpg,,1,Cepillo
+ESNU-12-10-P-A,8,19260,Cilindro Neumatico,,Festo,No funciona para reemplazar centra pinza,c:/Users/plasticosplasa/Pictures/media/image8.jpg,,0,Cepillo
+DSNU-12-10-P-A,9,19189,Cilindro Neumatico,,Festo,Centra Pinza,c:/Users/plasticosplasa/Pictures/media/image9.jpg,,1,Cepillo
+DSNU-16-10-PPV-A,10,1908266,Cilindro Neumatico,,Festo,Cierra Pinza,c:/Users/plasticosplasa/Pictures/media/image10.jpg,,1,Cepillo
+DSNU-16-200-PPV-A,11,19235,Cilindro Neumatico,,Festo,Sube Pinza,c:/Users/plasticosplasa/Pictures/media/image11.jpg,,1,Cepillo
+DSNU-16-80-PPV-A,12,19231,Cilindro Neumatico,,Festo,Cachador,c:/Users/plasticosplasa/Pictures/media/image12.jpg,,1,Cepillo
+DSNU-25-10-P-A,13,19218,Cilindro Neumatico,,Festo,Cizalla,c:/Users/plasticosplasa/Pictures/media/image13.jpg,,1,Cepillo
+DSNU-25-10-PPV-A,14,1908312,Cilindro Neumatico,,Festo,Cizalla,c:/Users/plasticosplasa/Pictures/media/image14.jpg,,0,Cepillo
+DSNU-16-40-PPV-A,15,19229,Cilindro Neumatico,,Festo,Sube Tijera,c:/Users/plasticosplasa/Pictures/media/image15.jpg,,1,Cepillo
+DSNU-12-250-PPV-A,16,193988,Cilindro Neumatico,,Festo,Aplasta Cerda,c:/Users/plasticosplasa/Pictures/media/image1.jpg,,1,Cepillo
+DNC-32-30-PPV-A,17,1922618,Cilindro Neumatico,,Festo,Orientador Chuck Motriz,c:/Users/plasticosplasa/Pictures/media/image17.jpg,,1,Cepillo
+AEN-25-20-A-P-A,18,536417,Cilindro Neumatico,,Festo,Cerrar Tijera,c:/Users/plasticosplasa/Pictures/media/image18.jpg,,1,Cepillo
+ADVU-32-30-A-P-A,19,156621,Cilindro Neumatico,,Festo,Baja Rasuradora,c:/Users/plasticosplasa/Pictures/media/image19.jpg,,1,Cepillo
+MFH-3-1/8 electrovalvula,93,7802,Valvula Neumatica,3 vias,Festo,,,,3,Cepillo
+MFH-5-1/8 electrovalvula,94,9982,Valvula Neumatica,5 vias,Festo,,,,14,Cepillo
+MFH-5-1/8 pilotada p aire,95,8823,Valvula Neumatica,5 vias,Festo,pilotada por aire,,,1,Cepillo
+AS1201F-M5-04A,96,,Valvula Neumatica,reguladora caudal,SMC,,,,16,Cepillo
+AS2201F-M5-06SA,97,,Valvula Neumatica,reguladora caudal,SMC,,,,12,Cepillo
+"Regulador baja presion, 1/4"" NPT (120 psi)",98,AR200002,Valvula Neumatica,regulador de presion,Instrutek,,,,2,Cepillo
+"Manometro 1.5"", estandar, 1/8"" NPT, posterior, 160 psi-kg/cm2",99,40110160,Indicador,manometro,Instrutek,,,,2,Cepillo
+"Manometro 2"", estandar, 1/4"" NPT, posterior, 100 psi-kg/cm2",100,51110100,Indicador,manometro,Instrutek,,,,0,Cepillo
+JMFH-5-1/8,101,8820,Valvula Neumatica,5 vias,Festo,Electrovalvula,,,1,Cepillo
+DSNU-20-200-PPV-A,20,19242,Cilindro Neumatico,,Festo,,c:/Users/plasticosplasa/Pictures/media/image23.jpg,,0,Cepillo
+QST-6 Union en T,102,153129,Conexion neumatica,cambio rapido,Festo,Para tubo flexible con diámetro exterior 6 mm,,,3,Cepillo
+KQ2N04-06 adaptador,103,KQ2N04-06,Conexion neumatica,,SMC FIT,Adaptador macho enchuflable,,,,
+AS1211F-M5-04A Regulador de flujo,104,AS1211F-M5-04A,Conexion neumatica,,SMC FIT,Flow control ,,,,
+QST-4 Union en T 153128,105,153128,Conexion neumatica,cambio rapido,Festo,Para tubo flexible con diámetro exterior 4 mm,,,,
+QSML-M5-6 153335,106,153335,Conexion neumatica,,Festo,,,,,
+QSML-M5-4,107,153333,Conexion neumatica,,Festo,,,,,
+AS1201F-M5-06A,108,AS1201F-M5-06A,Flow control,,SMC fit,,,,,
+QS-6-4 ,21,153037,Racor ,,Festo,Racor Rapido,,,,
+AS2201F-01-04SA,109,AS2201F-01-04SA,flow control,,SMC FIT,,,,,
+QS-6-4,22,153032,Conector encuflable,,Festo,,,,,
+MHY2-10D,110,MHY2-10D,Gripper,,SMC fit,Gripper angular,,,,
+Cortador Bala FORM a,111,72495,Cortador ,Bala,ZAHORANSKY,,,,,
+Cortador Recto 73927 HSS 90x30x27,91,73927,Cortador ,Recto,ZAHORANSKY,,,,,
+Cortador Rara 74025 KZA72/Form N.10,112,74025,Cortador ,Rara,ZAHORANSKY,,,,,
+Cortador Bala LI 319298,113,319298,Cortador ,Bala,LI,,,,,
+Cortador Cacahuate 50390 KZA72 Form N.19,114,50390,Cortador ,Cacahuate,ZAHORANSKY, HSS-Co5 90x30x27 Stg.1600,,,,
+cortador recto 73927,92,73927-B,Cortador ,Recto,zahoransky,HSS/E-90-25-27-W,,,,
+Contra cuchilla bala 27496,115,27496,Contra Cuchilla,Bala,zahoransky,,,,,
+Contra cuchilla Cacahuate Form N.19,116,U19,Contra Cuchilla,Cacahuate,zahoransky,,,,,
+Contra cuchilla Rara Form N.10,117,N10,Contra Cuchilla,Rara,zahoransky,,,,,
+Contra cuchilla Recto 73931 80x30x8,118,73931,Contra Cuchilla,Recto,zahoransky,,,,,
+Cuchillas varias experimento,119,,Contra Cuchilla,,,,,,,
+Abrazadera con pin para orientador de arrastre,120,21447,Abrazadera,,zahoransky,,,,,
+Resortes para las tijeras del cepillo,121,,Resortes,,,,,,,
+Resortes varios,122,,Resortes,,,,,,,
+Resortes grandes,123,,Resortes,,,,,,,
+Resorte Largo,124,,Resortes,,,,,,,
+Amortiguador Hidráulico Carrera 15mm RBC2015 SMC,125,RBC2015,Amortiguador Hidraulico,15mm,SMC,,,,,
+Topes de pinza,126,,Tope,,zahoransky,,,,,
+Cizallas,127,,Cizallas,,zahoransky,,,,,
+Orquillas,128,,Orquillas,,zahoransky,,,,,
+Solera para pin orientador de arrastre,129,,Solera,,zahoransky,,,,,
+Guias para alambre,130,,Guias,,,,,,,
+Buje para embolo grandes,131,,Bujes,,,,,,,
+Buje para embolo chicos,132,,Bujes,,,,,,,
+Tapas para cilindros,133,,Tapas,,,,,,,
+Bases chuck motriz,134,,Bases chuck,,,,,,,
+Lenguetas ,135,,Lenguetas,,,,,,,
+Bobina Magnetica 34411 MSFG-24/42-50/60-OD,23,34411,Bobina,,Festo,,c:/Users/plasticosplasa/Pictures/media/image33.jpg,,,
+Bobina Magnetica MSFG-24/42-50/60,24,4527,Bobina,,Festo,,c:/Users/plasticosplasa/Pictures/media/image34.jpg,,,
+Bobina Magnetica MSFW-110-50/60,25,6720,Bobina,,Festo,,c:/Users/plasticosplasa/Pictures/media/image35.jpg,,,
+Tuerca Moleteada,136,,Tuerca,,,,,,,
+Arandela,137,,Arandela,,,,,,,
+Pinza usada (20 mm) ,26,,Pinzas,usadas 20 mm, ,,,,,
+Pinza usada (22 mm) ,27,,Pinzas,usadas 22 mm,,,,,,
+Pinza usada (23 mm) ,28,,Pinzas,usadas 23 mm,,,,,,
+Pinza usada (24 mm) ,29,,Pinzas,usadas 24mm,,,,,,
+Pinza usada (25 mm) ,30,,Pinzas,usadas 25mm,,,,,,
+Pinza usada (28 mm) ,31,,Pinzas,usadas 26mm,,,,,,
+Aramadura para el chuck de arrastre,32,,Proteccion ,,,,c:/Users/plasticosplasa/Pictures/media/image36.jpg,,,
+lengueta con mango 152825,33,152825,Lenguetas,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image37.jpg,,,
+aguja separadora 336208,34,336208,aguja separadora,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image38.jpg,,,
+aguja separadora 336207,35,336207,aguja separadora,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image39.jpg,,,
+lengueta con mango,36,,lengueta con mango,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image40.jpg,,,V10
+Alimentador de cerda (peine de 4.5 mm),37,,Alimentador de cerda,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image41.jpg,,,
+Alimentador de cerda (peine de 3.5 mm),38,,Alimentador de cerda,,zahoransky, ,c:/Users/plasticosplasa/Pictures/media/image42.jpg,,,
+tornillo de cartel 1140616,39,1140616,tornillo de cartel,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image43.jpg,,,
+lengueta sin mango 148226,40,148226,lengueta sin mango,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image44.jpg,,,
+rueda estrillada pequena 81799,41,81799,rueda estrillada pequena,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image45.jpg,,,V10
+250 - WEV1: Art. 163767 wev par de mandibulas,42,163767,,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image46.jpg,,,
+WEV Empujador tamano 18,43,164349,WEV Empujador,tamano 18,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image47.jpg,,,V10
+WEV Empujador tamano 55,44,,WEV Empujador,tamano 55,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image48.jpg,,,V10
+ez par de mandibulas 151209,45,151209,ez par de mandibulas,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image49.jpg,,,
+Guia de alambre delantera 1790,46,1790,Guia de alambre,delantera,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image50.jpg,,,
+Guia de alambre trasera 1792,47,1792,Guia de alambre,trasera,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image51.jpg,,,
+tornillo de carter 155430,48,155430,tornillo de carter,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image52.jpg,,,
+recorrido 70 placa trasera 118101,49,118101,placa trasera recorrido 70,trasera,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image53.jpg,,,
+cuchilla plana alambre 4WA1027/33,50,4WA1027/33,cuchilla plana alambre,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image54.jpg,,,
+"EZ1 placa formadora 18/ 8/0,50 152105",51,152105,,,zahoransky,"peso: 0,040kg",,,,V10
+WEV1 placa formadora 152880,52,152880,,,zahoransky,230 manual de refacciones v10 ,,,,V10
+"EZ1 empujador 18/ 8/0,50 152937",53,152937,,,zahoransky,"Stosser, peso: 0,015",,,,V10
+EZ casquillo para carter insertador 373609,54,373609,,,zahoransky,"hulse peso:0,015",,,,V10
+EZ1 cuchilla en bloque 152503,55,152503,,,zahoransky,"blockmesser peso:0,026",c:/Users/plasticosplasa/Pictures/media/image55.jpg,,,V10
+WEV par de mandibulas 163767,56,163767-DUP,,,zahoransky,"paar backen peso:43,98",,,,V10
+NA cabeza de corte recto 71915,57,71915,,,zahoransky,kopfmes peso: 291.67,c:/Users/plasticosplasa/Pictures/media/image56.jpg,,,V10
+WEV punzon 164349,58,164349-P,,,zahoransky,stempel peso:91.4,c:/Users/plasticosplasa/Pictures/media/image57.jpg,,,V10
+WEV1 cuchilla bloqueo 164321,60,164321,,,zahoransky,blockmesser peso:54.48,,,,V10
+WEV1 cuchilla plana 1x10x10 corte 45 grados 4WA1058/4,61,4WA1058/4,,,zahoransky,flachmesser peso:12.3,c:/Users/plasticosplasa/Pictures/media/image58.jpg,,,V10
+rueda estriada grande 81588,62,81588,,,zahoransky,riffelrad peso:702 g ,c:/Users/plasticosplasa/Pictures/media/image59.jpg,,,V10
+manometro hidraulico 6000 lb / pulg 2 400 bar ,63,,,,instrutek,,c:/Users/plasticosplasa/Pictures/media/image60.jpg,,,
+balero,64,626-2RSIL,,,SKF,,c:/Users/plasticosplasa/Pictures/media/image61.jpg,,,
+elemento para filtro de succion AS 100-81,65,AS 100- 81,,,ARGO HYTOS,,c:/Users/plasticosplasa/Pictures/media/image62.jpg,,,
+elemento para filtro de succion AS 040-71,66,AS 040-71,,,ARGO HYTOS,,c:/Users/plasticosplasa/Pictures/media/image63.jpg,,,
+simichrome polish,67,390250,,,Gesswein,250 gram,c:/Users/plasticosplasa/Pictures/media/image64.jpg,,,
+2.5 manometro hidraulico 1/4 bsp posterior ,68,,,,instrutek,,c:/Users/plasticosplasa/Pictures/media/image65.jpg,,,
+estrella rotex 38 para acoplamiento 98SH-A,69,12111666,,,avance indsutrial,,c:/Users/plasticosplasa/Pictures/media/image66.jpg,,,
+estrella rotex cj28 para inserto de acoplamiento,70,,,,avance indsutrial,,,,,
+1621 inserto TPMW-222-HSS,71,1621,,,little machine shop,,,,,
+torpedos,72,,,,,,,,,
+torpedos usados,73,,,,,,,,,
+torpedos nuevos,74,,,,,,,,,
+manometro hidraulico mater mir de 4000 lb,75,,,,mater,,,,,
+tubos para torpedos,76,,,,,,,,,
+07554TE E4SRW-0400 carbide end mills 1/16 x 1/8,77,07554TE,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image67.jpg,,,
+ 24404 1MM  4FSER TIAN,78,24404,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image68.jpg,,,
+ 23074 1/16 4FSER ball altin ,79,23074,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image69.jpg,,,
+22228 5/32 altin,80,22228,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image70.jpg,,,
+22396 1/4 4FSER altin,81,22396,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image71.jpg,,,
+22696 1/2 4FSER altin,82,22696,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image72.jpg,,,
+22492 5/16 4FSER altin,83,22492,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image73.jpg,,,
+22148 4FSER bright 1/8 ,84,22148,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image74.jpg,,,
+2556 4FSER altin 3/8,85,2556,,,cobra carbide,,c:/Users/plasticosplasa/Pictures/media/image75.jpg,,,
+G8A38010 2F ball neck 1x4x1 2.2 x 50,86,5070,,,, ,c:/Users/plasticosplasa/Pictures/media/image76.jpg,,,
+bomba hidraulica MBT ARM 71 A,87,25045,,,asea brown bover ,,c:/Users/plasticosplasa/Pictures/media/image77.jpg,,,
+ F-680173 casquillo 58-3,88,F-680173,,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image78.jpg,,,
+F-680172 resorte 58-52,89,1140161,,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image79.jpg,,,
+F-680174 arandela de seguridad,90,1170816,,,zahoransky,,c:/Users/plasticosplasa/Pictures/media/image80.jpg,,,

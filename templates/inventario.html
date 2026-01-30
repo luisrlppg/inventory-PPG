@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Inventario - Inventario de Refacciones{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-clipboard-list me-2"></i>
+        Inventario por Ubicaciones
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <button type="button" class="btn btn-outline-primary" onclick="exportarInventario()">
+                <i class="fas fa-download me-1"></i>
+                Exportar
+            </button>
+            <button type="button" class="btn btn-primary" onclick="actualizarStock()">
+                <i class="fas fa-plus me-1"></i>
+                Actualizar Stock
+            </button>
+        </div>
+    </div>
+</div>
+
+{% if inventario_por_ubicacion %}
+<div class="row">
+    {% for codigo_ubicacion, datos_ubicacion in inventario_por_ubicacion.items() %}
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-map-marker-alt me-2"></i>
+                    {{ codigo_ubicacion }} - {{ datos_ubicacion.nombre }}
+                </h6>
+                <span class="badge bg-info">{{ datos_ubicacion.productos|length }} productos</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Imagen</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for producto in datos_ubicacion.productos %}
+                            <tr>
+                                <td>
+                                    <img src="/imagenes/{{ producto.producto_id }}.jpg" 
+                                         class="product-image" 
+                                         style="width: 40px; height: 40px;"
+                                         onerror="handleImageError(this)"
+                                         alt="Producto {{ producto.producto_id }}">
+                                </td>
+                                <td>
+                                    <strong>{{ producto.descripcion }}</strong>
+                                    {% if producto.codigo %}
+                                    <br><small class="text-muted">{{ producto.codigo }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {{ 'bg-success' if producto.cantidad >= producto.cantidad_requerida else 'bg-warning' }}">
+                                        {{ producto.cantidad }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if producto.cantidad >= producto.cantidad_requerida %}
+                                        <span class="badge bg-success">OK</span>
+                                    {% elif producto.cantidad > 0 %}
+                                        <span class="badge bg-warning">Bajo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Agotado</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                onclick="editarStock({{ producto.producto_id }}, '{{ codigo_ubicacion }}', {{ producto.cantidad }})"
+                                                title="Editar cantidad">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                onclick="verDetalles({{ producto.producto_id }})"
+                                                title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card shadow">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-boxes fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">No hay productos en inventario</h5>
+        <p class="text-muted">Comienza agregando productos y asignándoles ubicaciones.</p>
+        <a href="{{ url_for('nuevo_producto') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Agregar Primer Producto
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal para editar stock -->
+<div class="modal fade" id="editarStockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editarStockForm">
+                    <input type="hidden" id="edit_producto_id" name="producto_id">
+                    <input type="hidden" id="edit_ubicacion_codigo" name="ubicacion_codigo">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Producto:</label>
+                        <p id="edit_producto_nombre" class="form-control-plaintext"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Ubicación:</label>
+                        <p id="edit_ubicacion_nombre" class="form-control-plaintext"></p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_cantidad" class="form-label">Nueva Cantidad</label>
+                        <input type="number" class="form-control" id="edit_cantidad" name="cantidad" min="0" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_motivo" class="form-label">Motivo del Cambio</label>
+                        <select class="form-select" id="edit_motivo" name="motivo">
+                            <option value="ajuste">Ajuste de inventario</option>
+                            <option value="entrada">Entrada de mercancía</option>
+                            <option value="salida">Salida de mercancía</option>
+                            <option value="uso">Uso en producción</option>
+                            <option value="perdida">Pérdida/Daño</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarStock()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para actualizar stock masivo -->
+<div class="modal fade" id="actualizarStockModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Actualizar Stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="stock_producto" class="form-label">Producto</label>
+                            <select class="form-select" id="stock_producto" name="producto_id">
+                                <option value="">Seleccionar producto...</option>
+                                <!-- Cargar productos dinámicamente -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="stock_ubicacion" class="form-label">Ubicación</label>
+                            <select class="form-select" id="stock_ubicacion" name="ubicacion_id">
+                                <option value="">Seleccionar ubicación...</option>
+                                <!-- Cargar ubicaciones dinámicamente -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="stock_cantidad" class="form-label">Cantidad</label>
+                    <input type="number" class="form-control" id="stock_cantidad" name="cantidad" min="0" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarNuevoStock()">Actualizar Stock</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editarStock(productoId, ubicacionCodigo, cantidadActual) {
+    document.getElementById('edit_producto_id').value = productoId;
+    document.getElementById('edit_ubicacion_codigo').value = ubicacionCodigo;
+    document.getElementById('edit_cantidad').value = cantidadActual;
+    
+    // Cargar información del producto
+    fetch(`/api/producto/${productoId}`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('edit_producto_nombre').textContent = data.descripcion;
+            document.getElementById('edit_ubicacion_nombre').textContent = ubicacionCodigo;
+        });
+    
+    new bootstrap.Modal(document.getElementById('editarStockModal')).show();
+}
+
+function guardarStock() {
+    const form = document.getElementById('editarStockForm');
+    const formData = new FormData(form);
+    
+    fetch('/api/actualizar-stock', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error al actualizar stock: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al actualizar stock');
+    });
+}
+
+function actualizarStock() {
+    new bootstrap.Modal(document.getElementById('actualizarStockModal')).show();
+}
+
+function guardarNuevoStock() {
+    // Implementar guardado de nuevo stock
+    alert('Funcionalidad en desarrollo');
+}
+
+function exportarInventario() {
+    window.open('/api/exportar-inventario', '_blank');
+}
+
+function verDetalles(productoId) {
+    // Reutilizar función del archivo productos.html
+    fetch(`/api/producto/${productoId}`)
+        .then(response => response.json())
+        .then(data => {
+            // Mostrar detalles del producto
+            alert(`Producto: ${data.descripcion}\nCódigo: ${data.codigo || 'Sin código'}\nCategoría: ${data.categoria || 'Sin categoría'}`);
+        });
+}
+</script>
+{% endblock %}

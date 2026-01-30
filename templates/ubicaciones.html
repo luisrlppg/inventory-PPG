@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Ubicaciones - Inventario de Refacciones{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+    <h1 class="h2">
+        <i class="fas fa-map-marker-alt me-2"></i>
+        Gestión de Ubicaciones
+    </h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
+            <a href="{{ url_for('nueva_ubicacion') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>
+                Nueva Ubicación
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-header py-3">
+        <h6 class="m-0 font-weight-bold text-primary">
+            Lista de Ubicaciones ({{ ubicaciones|length }} registradas)
+        </h6>
+    </div>
+    <div class="card-body">
+        {% if ubicaciones %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Ubicación Completa</th>
+                        <th>Productos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ubicacion in ubicaciones %}
+                    <tr>
+                        <td>
+                            <span class="badge bg-primary">{{ ubicacion.codigo }}</span>
+                        </td>
+                        <td><strong>{{ ubicacion.nombre }}</strong></td>
+                        <td>{{ ubicacion.descripcion or 'Sin descripción' }}</td>
+                        <td>
+                            <small class="text-muted">
+                                {{ ubicacion.empresa }} / {{ ubicacion.area }} / {{ ubicacion.nivel }} / {{ ubicacion.seccion }}
+                            </small>
+                        </td>
+                        <td>
+                            <span class="badge bg-info" id="productos-{{ ubicacion.id }}">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('editar_ubicacion', id=ubicacion.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-info" 
+                                        onclick="verProductos({{ ubicacion.id }}, '{{ ubicacion.codigo }}')"
+                                        title="Ver productos">
+                                    <i class="fas fa-boxes"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        onclick="eliminarUbicacion({{ ubicacion.id }}, '{{ ubicacion.codigo }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">No hay ubicaciones registradas</h5>
+            <p class="text-muted">Comienza creando ubicaciones para organizar tu inventario.</p>
+            <a href="{{ url_for('nueva_ubicacion') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>
+                Crear Primera Ubicación
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para ver productos en ubicación -->
+<div class="modal fade" id="productosUbicacionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Productos en Ubicación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productosUbicacionContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" id="confirmarEliminarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar la ubicación <strong id="ubicacion-eliminar"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Esta acción no se puede deshacer. Los productos en esta ubicación quedarán sin ubicación asignada.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmar-eliminar-btn">Eliminar Ubicación</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Cargar cantidad de productos por ubicación al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    {% for ubicacion in ubicaciones %}
+    cargarCantidadProductos({{ ubicacion.id }});
+    {% endfor %}
+});
+
+function cargarCantidadProductos(ubicacionId) {
+    fetch(`/api/ubicacion/${ubicacionId}/productos-count`)
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.getElementById(`productos-${ubicacionId}`);
+            badge.innerHTML = data.count;
+            badge.className = data.count > 0 ? 'badge bg-success' : 'badge bg-secondary';
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const badge = document.getElementById(`productos-${ubicacionId}`);
+            badge.innerHTML = '0';
+            badge.className = 'badge bg-secondary';
+        });
+}
+
+function verProductos(ubicacionId, codigoUbicacion) {
+    fetch(`/api/ubicacion/${ubicacionId}/productos`)
+        .then(response => response.json())
+        .then(data => {
+            let html = `<h6>Ubicación: ${codigoUbicacion}</h6>`;
+            
+            if (data.productos && data.productos.length > 0) {
+                html += `
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th>Producto</th>
+                                    <th>Código</th>
+                                    <th>Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                data.productos.forEach(producto => {
+                    html += `
+                        <tr>
+                            <td>
+                                <img src="/imagenes/${producto.producto_id}.jpg" 
+                                     style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;"
+                                     onerror="handleImageError(this)"
+                                     alt="Producto ${producto.producto_id}">
+                            </td>
+                            <td>${producto.descripcion}</td>
+                            <td>${producto.codigo || 'Sin código'}</td>
+                            <td><span class="badge bg-primary">${producto.cantidad}</span></td>
+                        </tr>
+                    `;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                html += `
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No hay productos en esta ubicación</p>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('productosUbicacionContent').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('productosUbicacionModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cargar los productos de la ubicación');
+        });
+}
+
+function eliminarUbicacion(ubicacionId, codigoUbicacion) {
+    document.getElementById('ubicacion-eliminar').textContent = codigoUbicacion;
+    
+    const confirmarBtn = document.getElementById('confirmar-eliminar-btn');
+    confirmarBtn.onclick = function() {
+        fetch(`/api/ubicacion/${ubicacionId}/eliminar`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error al eliminar ubicación: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar ubicación');
+        });
+    };
+    
+    new bootstrap.Modal(document.getElementById('confirmarEliminarModal')).show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,134 @@
+ProductoID,Producto,Cantidad,UbicacionPrincipal,UbicacionesAdicionales,Empresa,Area,Nivel,Seccion
+94,MFH-5-1/8 electrovalvula,5,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+93,MFH-3-1/8 electrovalvula,4,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+19,ADVU-32-30-A-P-A,1,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+18,AEN-25-20-A-P-A,2,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+98,"Regulador baja presión, 1/4"" NPT (120 psi)",1,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+99,"Manómetro 1.5"", estándar, 1/8"" NPT, posterior, 160 psi-kg/cm2",1,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+100,"Manómetro 2"", estándar, 1/4"" NPT, posterior, 100 psi-kg/cm2",1,A0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+7,DSNU-12-50-P-A,2,A1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+9,DSNU-12-10-P-A,2,A1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+15,DSNU-16-40-PPV-A,1,A1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+14,DSNU-25-10-PPV-A,1,A1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+1,DSNU-16-100-PPV-A,1,A1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+101,JMFH-5-1/8,1,A2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+32,Aramadura para el chuck de arrastre,3,A2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+8,ESNU-12-10-P-A,1,A3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+6,DSNU-25-160-PPV-A,1,A3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+3,DSNU-20-175-PPV-A,3,A3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+5,DSNU-20-160-PPV-A,1,A3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+20,DSNU-20-200-PPV-A,1,A3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+102,Unión en T,10,B1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+22,153037 QS-6-4,10,B10,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+110,MHY2-10D,1,B11,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+89,F-680172 114016resorte 58-52,5,B15,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+88,F-680173 114016 casquillo 58-3,8,B17,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+103,KQ2N04-06,8,B2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+109,AS2201F-01-04SA,4,B20,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+125,Amortiguador Hidráulico Carrera 15mm RBC2015 SMC,1,B21,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+120,Abrazadera con pin para orientador de arrastre,1,B22,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+39,tornillo de cartel,6,B23,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+126,Topes de pinza,7,B24,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+127,Cizallas,4,B25,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+128,Orquillas,5,B26,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+129,Solera para pin orientador de arrastre,1,B27,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+104,AS1211F-M5-04A,4,B3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+22,153032 QS-6-4,8,B30,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+130,Guias para alambre,2,B31,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+131,Buje para embolo grandes,3,B32,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+132,Buje para embolo chicos,1,B33,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+133,Tapas para cilindros,5,B34,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+134,Bases chuck motriz,3,B35,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+43,WEV Empujador tamano 18,9,B36,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+44,WEV Empujador tamano 55,1,B36,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+46,Guia de alambre delantera,1,B37,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+47,Guia de alambre trasera,1,B37,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+105,QST-4 Union en T 153128,10,B4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+72,torpedos nuevos,46,B40,B60; B64,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+45,151209 ez par de mandibulas,6,B41,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+48,155430 tornillo de carter,2,B42,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+50,4WA1027/33 cuchilla plana alambre,9,B43,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+42,163767 wev par de manidbulas,1,B44,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+51,"EZ1 placa formadora 18/ 8/0,50 152105",2,B45,B51,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+61,WEV1 cuchilla plana 1x10x10 corte 45 grados 4WA1058/4,8,B46,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+52,WEV1 placa formadora 152880,1,B47,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+106,QSML-M5-6 153335,9,B5,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+42,250 - WEV1: Art. 163767,6,B50,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+137,1170816 F-680174 arandela de seguridad,12,B50,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+55,EZ1 cuchilla en bloque 152503,2,B52,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+58,WEV punzon 164349,1,B53,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+60,164321 WEV1 cuchilla bloqueo,1,B54,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+64,626-2RSIL balero,1,B57,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+107,153333 QSML-M5-4,9,B6,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,tornillos para torpedo,5,B60,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+72,torpedos usados grandes,13,B61,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+72,torpedos usados chicos,15,B62,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+72,torpedos usados  grandes,13,B63,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+72,tubos para torpedos,16,B65,B66,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+71,1621 inserto TPMW-222-HSS,30,B67,B70,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+108,AS1201F-M5-06A,3,B7,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+124,Resorte Largo,varios,B72,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+123,Resortes grandes,varios,B73,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+122,Resortes Varios,varios,B74,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+121,Resortes para las tijeras del cepillo,varios,B75,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+38,Alimentador de cerda (peine de 3.5 mm),1,B79,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+41,rueda estrillada pequena 81799,1,B79,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+25,Bobina Magnetica MSFW-110-50/60,3,B80,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+37,Alimentador de cerda (peine de 4.5 mm),3,B80,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+70,estrella rotex cj28,1,B81,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+69,12111666 estrella rotex,1,B82,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+49,118101 recorrido 70 placa trasera,1,B83,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+24,Bobina Magnetica MSFG-24/42-50/60,1,B90,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+23,Bobina Magnetica 34411 MSFG-24/42-50/60-OD,2,B91,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+136,Tuerca Moleteada,5,B92,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+137,Arandela,4,B93,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (25mm),2,C10,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+119,Cuchillas varias experimento,12,C11,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+135,Lenguetas,1,C11,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (23mm),1,C12,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+62,rueda estriada grande 81588,1,C28,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+57,NA cabeza de corte recto 71915,1,C29,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (20mm),2,C4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (22mm),2,C5,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (24mm),1,C6,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (28mm),2,C9,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+92,cortador recto HSS/E-90-25-27-W,5,D0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+113,Cortador Bala LI 319298,2,D0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Contracuchilla Bala KZA72 Form N.10,4,D1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+115,Cortador contra cuchilla bala,7,D1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+111,Cortador Bala FORM a 72495,5,D1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+115,Contra cuchilla bala 27496,8,D1,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+91,cortador recto 73927,3,D2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+118,Contra cuchilla Recto 73931 80x30x8,4,D2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+91,Cortador Recto 73927 HSS 90x30x27,3,D2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+114,Contracuchilla Cacahuate KZA72 Form N.19,4,D3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+114,Cortador Cacahuate 50390 KZA72 Form N.19,2,D3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Cortador Cacahuate HSS-Co5 90x30x27 Stg.1600,2,D3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+116,Contra cuchilla Cacahuate U19,4,D3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+111,Cortador Bala KZA72 Form N.10,2,D4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+112,74025 (KZA-72),2,D4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+111,Cortador cuchilla bala,4,D4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+112,Cortador Rara 74025 KZA72/Form N.10,4,D4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+117,Contra cuchilla Rara N10,2,D4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+79,23074 1/16 4FSER ball altin,1,E 1/16,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+77,07554TE E4SRW-0400 carbide end mills 1/16 x 1/8,5,E 1/16 x 1/8,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+81,22396 1/4 4FSER altin,7,E 1/4,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+84,22148 4FSER bright,4,E 1/8,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+78,24404 1MM  4FSER TIAN,1,E 1MM,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+79,23290 4FSER ball altin,4,E 3/16,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+85,2556 4FSER bright,3,E 3/8,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+83,22492 5/16 4FSER altin,4,E 5/16,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+80,22228 5/32 altin,1,E 5/32,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+86,5070 G8A38010 2F ball neck 1x4x1 2.2 x 50,3,E 5070,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+34,aguja separadora 336208,1,E0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+35,aguja separadora 336207,1,E0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+36,lengueta con mango 148226,49,E0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+40,lengueta sin mango 148226,2,E0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+63,manometro hidraulico 6000 lb / pulg 2 400 bar,3,F0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+65,AS 100-81 elemento para filtro de succion,1,F0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+66,AS 040-71 elemento par filtro de succion,1,F0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+68,2.5 manometro hidraulico 1/4 bsp poterior,1,F0,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+87,25045 bomba hidraulica MBT ARM 71 A,1,F2,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+67,390250 simichrome polish,2,F3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+75,manometro hidraulico mater mir de 4000 lb,1,F3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
+,Pinzas viejas (14mm),1,MAQCepillos - C3,,PPG,Oficinas,Planta Alta,Anaquel Refacciones Maq Cepillo
