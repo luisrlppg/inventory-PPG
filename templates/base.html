@@ -38,12 +38,6 @@
             background-color: #fff3cd !important;
             border-left: 4px solid #ffc107;
         }
-        .admin-indicator {
-            position: fixed;
-            top: 70px;
-            right: 20px;
-            z-index: 1000;
-        }
     </style>
 </head>
 <body class="bg-light">
@@ -107,17 +101,6 @@
 
     <!-- Main content -->
     <div class="container mt-4">
-        {% if session.admin_username %}
-        <div class="admin-indicator">
-            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                <i class="fas fa-shield-alt me-2"></i>
-                <strong>Modo Administrador Activo</strong>
-                <br><small>Haz clic en cualquier producto del inventario para editar stock</small>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        </div>
-        {% endif %}
-        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
