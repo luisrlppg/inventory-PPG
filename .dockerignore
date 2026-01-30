@@ -1,0 +1,56 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation (optional, keep if needed in container)
+*.md
+INSTRUCCIONES.md
+README.md
+RESUMEN_PROYECTO.md
+
+# CSV files (data already in database)
+*.csv
+
+# Batch files (Windows specific)
+*.bat
+
+# Backup files
+*_backup_*.db
+inventario_before_restore_*.db

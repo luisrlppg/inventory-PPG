@@ -1331,5 +1331,10 @@ def imagenes(filename):
     from flask import send_from_directory
     return send_from_directory('imagenes', filename)
 
+@app.route('/health')
+def health_check():
+    """Health check endpoint for Docker"""
+    return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

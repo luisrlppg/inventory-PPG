@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  inventario-app:
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    volumes:
+      # Mount source code for live reload
+      - ./app.py:/app/app.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+    command: ["python", "-u", "app.py"]

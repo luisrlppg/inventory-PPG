@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  inventario-app:
+    build: .
+    container_name: inventario-ppg
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persist database and images
+      - ./inventario.db:/app/inventario.db
+      - ./imagenes:/app/imagenes
+      # Optional: persist logs
+      - ./logs:/app/logs
+    environment:
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: inventario-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro  # For SSL certificates
+    depends_on:
+      - inventario-app
+    restart: unless-stopped
+    profiles:
+      - production  # Only start with --profile production
+
+networks:
+  default:
+    name: inventario-network
