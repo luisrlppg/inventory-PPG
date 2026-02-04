@@ -516,9 +516,9 @@ def agregar_stock():
         # Obtener o crear ubicación
         ubicacion = conn.execute('SELECT id FROM ubicaciones WHERE codigo = ?', (ubicacion_codigo,)).fetchone()
         if not ubicacion:
-            conn.execute('INSERT INTO ubicaciones (codigo, nombre) VALUES (?, ?)', 
+            cursor = conn.execute('INSERT INTO ubicaciones (codigo, nombre) VALUES (?, ?)', 
                         (ubicacion_codigo, ubicacion_codigo))
-            ubicacion_id = conn.lastrowid
+            ubicacion_id = cursor.lastrowid
         else:
             ubicacion_id = ubicacion['id']
         
@@ -613,9 +613,9 @@ def cambio_ubicacion():
         # Obtener o crear ubicación destino
         ubicacion_destino = conn.execute('SELECT id FROM ubicaciones WHERE codigo = ?', (ubicacion_destino_codigo,)).fetchone()
         if not ubicacion_destino:
-            conn.execute('INSERT INTO ubicaciones (codigo, nombre) VALUES (?, ?)', 
+            cursor = conn.execute('INSERT INTO ubicaciones (codigo, nombre) VALUES (?, ?)', 
                         (ubicacion_destino_codigo, ubicacion_destino_codigo))
-            ubicacion_destino_id = conn.lastrowid
+            ubicacion_destino_id = cursor.lastrowid
         else:
             ubicacion_destino_id = ubicacion_destino['id']
         
@@ -845,11 +845,11 @@ def guardar_ubicacion():
                     conn=conn
                 )
         else:  # Crear nueva ubicación
-            conn.execute('''
+            cursor = conn.execute('''
                 INSERT INTO ubicaciones (codigo, nombre)
                 VALUES (?, ?)
             ''', (codigo, nombre))
-            nueva_ubicacion_id = conn.lastrowid
+            nueva_ubicacion_id = cursor.lastrowid
             flash('Ubicación creada exitosamente', 'success')
             
             # Log de administrador si está logueado
