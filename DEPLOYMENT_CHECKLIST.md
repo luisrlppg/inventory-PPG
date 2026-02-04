@@ -48,6 +48,31 @@ Since you don't have Docker installed, you'll need to install:
 
 Once Docker is installed, run these commands in your project directory:
 
+### Quick Deployment Scripts
+
+**Windows Batch Files:**
+```bash
+# Production deployment (with Nginx)
+deploy_production.bat
+
+# Development deployment
+deploy_development.bat
+
+# Interactive management menu
+docker_management.bat
+```
+
+**PowerShell Scripts:**
+```powershell
+# Production deployment
+.\deploy_production.ps1
+
+# Development deployment
+.\deploy_development.ps1
+```
+
+### Manual Commands
+
 ```bash
 # 1. Build the application image
 docker-compose build

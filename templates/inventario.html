@@ -339,7 +339,7 @@
                         <input type="hidden" name="producto_id" id="producto_id_entrada" required>
                         
                         <div id="lista_productos_entrada" class="mt-2" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem; display: none;">
-                            {% for producto in productos %}
+                            {% for producto in todos_productos %}
                             <div class="producto-item p-2 border-bottom" 
                                  data-id="{{ producto.id }}" 
                                  data-nombre="{{ producto.descripcion }}"

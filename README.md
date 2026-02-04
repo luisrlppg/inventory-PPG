@@ -18,7 +18,9 @@ Sistema web completo para la gestión de inventario de refacciones de Plásticos
 - Flask
 - SQLite (incluido con Python)
 
-## 🛠️ Instalación
+## 🛠️ Instalación y Despliegue
+
+### 🖥️ Desarrollo Local (Windows)
 
 1. **Clonar o descargar el proyecto**
    ```bash
@@ -27,7 +29,7 @@ Sistema web completo para la gestión de inventario de refacciones de Plásticos
 
 2. **Instalar dependencias**
    ```bash
-   pip install flask
+   pip install -r requirements.txt
    ```
 
 3. **Importar datos existentes**
@@ -37,6 +39,14 @@ Sistema web completo para la gestión de inventario de refacciones de Plásticos
 
 4. **Iniciar la aplicación**
    ```bash
+   # Método 1: Script existente
+   iniciar_app.bat
+   
+   # Método 2: Servidor de desarrollo
+   scripts\dev_server.py
+   
+   # Método 3: Manual
+   .\venv\Scripts\Activate.ps1
    python app.py
    ```
 
@@ -44,6 +54,34 @@ Sistema web completo para la gestión de inventario de refacciones de Plásticos
    ```
    http://localhost:5000
    ```
+
+### 🐳 Despliegue con Docker
+
+#### Ubuntu 24.04 (Producción):
+```bash
+# Hacer scripts ejecutables (solo la primera vez)
+chmod +x scripts/*.sh
+
+# Desplegar en producción con Nginx
+./scripts/deploy_production.sh
+
+# Gestión interactiva
+./scripts/docker_management.sh
+```
+
+#### Windows:
+```cmd
+# Desplegar en producción
+scripts\deploy_production.bat
+
+# Gestión interactiva
+scripts\docker_management.bat
+```
+
+#### Acceso Post-Despliegue:
+- **Producción**: http://localhost (Nginx) o http://localhost:5000 (directo)
+- **Desarrollo**: http://localhost:5000
+- **Admin**: admin / admin123 (cambiar después del primer login)
 
 ## 📁 Estructura del Proyecto
 
@@ -54,17 +92,29 @@ inventario-refacciones/
 ├── inventario.db          # Base de datos SQLite
 ├── Productos.csv          # Catálogo de productos
 ├── Inventario.csv         # Stock por ubicaciones
+├── docker-compose.yml     # Configuración Docker
+├── Dockerfile             # Imagen Docker
+├── nginx.conf             # Configuración Nginx
 ├── imagenes/              # Imágenes de productos (ID.jpg)
 ├── templates/             # Plantillas HTML
 │   ├── base.html
-│   ├── dashboard.html
 │   ├── productos.html
 │   ├── inventario.html
 │   ├── ubicaciones.html
-│   ├── configuracion.html
+│   ├── admin_login.html
 │   └── producto_form.html
-└── static/
-    └── style.css          # Estilos personalizados
+├── static/
+│   └── style.css          # Estilos personalizados
+├── scripts/               # Scripts de despliegue y desarrollo
+│   ├── deploy_production.sh    # Despliegue Ubuntu
+│   ├── deploy_production.bat   # Despliegue Windows
+│   ├── docker_management.sh    # Gestión Docker Ubuntu
+│   ├── docker_management.bat   # Gestión Docker Windows
+│   └── dev_server.py           # Servidor desarrollo
+└── tests/                 # Scripts de testing
+    ├── test_performance.py     # Tests de rendimiento
+    ├── diagnose_slowness.py    # Diagnóstico
+    └── verify_docker_setup.py  # Verificación Docker
 ```
 
 ## 🖼️ Gestión de Imágenes
@@ -104,6 +154,28 @@ El sistema busca automáticamente la imagen basándose en el ID del producto.
 - Gestión de categorías, marcas y máquinas
 - Herramientas de administración
 - Información del sistema
+
+## 🧪 Testing y Diagnóstico
+
+### Scripts de Verificación:
+```bash
+# Verificar configuración Docker
+python tests/verify_docker_setup.py
+
+# Diagnosticar problemas de rendimiento
+python tests/diagnose_slowness.py
+
+# Probar rendimiento de API
+python tests/test_performance.py
+
+# Verificar entrada de material
+python tests/test_entrada_material.py
+```
+
+### Métricas Esperadas:
+- **Base de datos**: Consultas < 50ms
+- **API**: Respuestas < 500ms  
+- **Actualizaciones**: < 200ms
 
 ## 🔧 Configuración
 

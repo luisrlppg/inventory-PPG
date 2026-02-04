@@ -54,3 +54,7 @@ RESUMEN_PROYECTO.md
 # Backup files
 *_backup_*.db
 inventario_before_restore_*.db
+
+# Testing and scripts directories
+tests/
+scripts/

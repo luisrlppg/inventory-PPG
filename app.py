@@ -30,13 +30,17 @@ logging.basicConfig(
 DATABASE = 'inventario.db'
 
 def get_db_connection():
-    """Obtener conexión a la base de datos"""
+    """Obtener conexión a la base de datos - OPTIMIZADA"""
     conn = sqlite3.connect(DATABASE, timeout=20.0)
     conn.row_factory = sqlite3.Row
-    # Enable WAL mode for better concurrent access
-    conn.execute('PRAGMA journal_mode=WAL')
-    # Set busy timeout
-    conn.execute('PRAGMA busy_timeout=20000')
+    
+    # Optimizaciones de rendimiento
+    conn.execute('PRAGMA journal_mode=WAL')  # Better concurrent access
+    conn.execute('PRAGMA busy_timeout=20000')  # 20 second timeout
+    conn.execute('PRAGMA synchronous=NORMAL')  # Faster writes
+    conn.execute('PRAGMA cache_size=10000')  # Larger cache
+    conn.execute('PRAGMA temp_store=MEMORY')  # Use memory for temp tables
+    
     return conn
 
 def hash_password(password):
@@ -301,7 +305,7 @@ def inventario():
     search = request.args.get('search', '').strip()
     categoria_filter = request.args.get('categoria', '')
     
-    # Query para obtener solo productos con stock > 0
+    # Query para obtener solo productos con stock > 0 (para la tabla)
     query = '''
         SELECT p.*, c.nombre as categoria, sc.nombre as subcategoria, 
                m.nombre as marca, mq.nombre as maquina,
@@ -330,7 +334,14 @@ def inventario():
     
     query += ' GROUP BY p.id HAVING stock_total > 0 ORDER BY p.descripcion'
     
-    productos = conn.execute(query, params).fetchall()
+    productos_con_stock = conn.execute(query, params).fetchall()
+    
+    # Obtener TODOS los productos para el modal de entrada de material
+    todos_productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo
+        FROM productos p
+        ORDER BY p.descripcion
+    ''').fetchall()
     
     # Obtener listas para filtros
     categorias = conn.execute('SELECT DISTINCT nombre FROM categorias WHERE nombre IS NOT NULL ORDER BY nombre').fetchall()
@@ -341,7 +352,8 @@ def inventario():
     conn.close()
     
     return render_template('inventario.html', 
-                         productos=productos,
+                         productos=productos_con_stock,  # Para la tabla (solo con stock)
+                         todos_productos=todos_productos,  # Para el modal de entrada (todos)
                          categorias=categorias,
                          ubicaciones=ubicaciones,
                          filters={
@@ -437,7 +449,7 @@ def guardar_producto():
 @app.route('/admin/actualizar-stock-rapido', methods=['POST'])
 @require_admin
 def actualizar_stock_rapido():
-    """Actualización rápida de stock por administrador"""
+    """Actualización rápida de stock por administrador - OPTIMIZADA"""
     try:
         data = request.get_json()
         cambios = data.get('cambios', {})
@@ -448,50 +460,106 @@ def actualizar_stock_rapido():
         conn = get_db_connection()
         cambios_aplicados = 0
         
-        for key, cambio in cambios.items():
-            producto_id = cambio['producto_id']
-            ubicacion_id = cambio['ubicacion_id']
-            stock_actual = cambio['stock_actual']
-            nuevo_stock = cambio['nuevo_stock']
+        try:
+            # Iniciar transacción
+            conn.execute('BEGIN TRANSACTION')
             
-            # Obtener información del producto y ubicación para logs
-            producto_info = conn.execute('SELECT descripcion FROM productos WHERE id = ?', (producto_id,)).fetchone()
-            ubicacion_info = conn.execute('SELECT codigo FROM ubicaciones WHERE id = ?', (ubicacion_id,)).fetchone()
+            # Preparar consultas para optimizar
+            update_query = '''UPDATE inventario SET cantidad = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
+                             WHERE producto_id = ? AND ubicacion_id = ?'''
+            insert_query = '''INSERT INTO inventario (producto_id, ubicacion_id, cantidad) VALUES (?, ?, ?)'''
+            delete_query = '''DELETE FROM inventario WHERE producto_id = ? AND ubicacion_id = ?'''
             
-            if nuevo_stock == 0:
-                # Eliminar registro si el stock es 0
-                conn.execute('DELETE FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
-                           (producto_id, ubicacion_id))
-                descripcion = f"Eliminado stock de {producto_info['descripcion']} en {ubicacion_info['codigo']}"
-            else:
-                # Actualizar o insertar stock
-                existing = conn.execute('SELECT * FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
-                                      (producto_id, ubicacion_id)).fetchone()
+            # Obtener información de productos y ubicaciones en lotes
+            producto_ids = [cambio['producto_id'] for cambio in cambios.values()]
+            ubicacion_ids = [cambio['ubicacion_id'] for cambio in cambios.values()]
+            
+            # Consulta optimizada para obtener info de productos
+            productos_info = {}
+            if producto_ids:
+                placeholders = ','.join('?' * len(set(producto_ids)))
+                productos_result = conn.execute(f'SELECT id, descripcion FROM productos WHERE id IN ({placeholders})', 
+                                              list(set(producto_ids))).fetchall()
+                productos_info = {p['id']: p['descripcion'] for p in productos_result}
+            
+            # Consulta optimizada para obtener info de ubicaciones
+            ubicaciones_info = {}
+            if ubicacion_ids:
+                placeholders = ','.join('?' * len(set(ubicacion_ids)))
+                ubicaciones_result = conn.execute(f'SELECT id, codigo FROM ubicaciones WHERE id IN ({placeholders})', 
+                                                list(set(ubicacion_ids))).fetchall()
+                ubicaciones_info = {u['id']: u['codigo'] for u in ubicaciones_result}
+            
+            # Procesar cambios
+            log_entries = []
+            
+            for key, cambio in cambios.items():
+                producto_id = cambio['producto_id']
+                ubicacion_id = cambio['ubicacion_id']
+                stock_actual = cambio['stock_actual']
+                nuevo_stock = cambio['nuevo_stock']
                 
-                if existing:
-                    conn.execute('''UPDATE inventario SET cantidad = ?, fecha_actualizacion = CURRENT_TIMESTAMP 
-                                   WHERE producto_id = ? AND ubicacion_id = ?''', 
-                               (nuevo_stock, producto_id, ubicacion_id))
+                producto_desc = productos_info.get(producto_id, f'ID:{producto_id}')
+                ubicacion_codigo = ubicaciones_info.get(ubicacion_id, f'ID:{ubicacion_id}')
+                
+                if nuevo_stock == 0:
+                    # Eliminar registro si el stock es 0
+                    conn.execute(delete_query, (producto_id, ubicacion_id))
+                    descripcion = f"Eliminado stock de {producto_desc} en {ubicacion_codigo}"
                 else:
-                    conn.execute('INSERT INTO inventario (producto_id, ubicacion_id, cantidad) VALUES (?, ?, ?)', 
-                               (producto_id, ubicacion_id, nuevo_stock))
+                    # Verificar si existe el registro
+                    existing = conn.execute('SELECT 1 FROM inventario WHERE producto_id = ? AND ubicacion_id = ?', 
+                                          (producto_id, ubicacion_id)).fetchone()
+                    
+                    if existing:
+                        conn.execute(update_query, (nuevo_stock, producto_id, ubicacion_id))
+                    else:
+                        conn.execute(insert_query, (producto_id, ubicacion_id, nuevo_stock))
+                    
+                    descripcion = f"Actualizado stock de {producto_desc} en {ubicacion_codigo}: {stock_actual} → {nuevo_stock}"
                 
-                descripcion = f"Actualizado stock de {producto_info['descripcion']} en {ubicacion_info['codigo']}: {stock_actual} → {nuevo_stock}"
+                # Preparar entrada de log (se insertará en lote)
+                log_entries.append({
+                    'operation_type': 'STOCK_EDIT',
+                    'description': descripcion,
+                    'producto_id': producto_id,
+                    'ubicacion_id': ubicacion_id,
+                    'old_quantity': stock_actual,
+                    'new_quantity': nuevo_stock
+                })
+                
+                cambios_aplicados += 1
             
-            # Registrar en logs
-            log_admin_operation(
-                operation_type='STOCK_EDIT',
-                description=descripcion,
-                producto_id=producto_id,
-                ubicacion_id=ubicacion_id,
-                old_quantity=stock_actual,
-                new_quantity=nuevo_stock
-            )
+            # Insertar logs en lote
+            if log_entries:
+                ip_address = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', 'unknown'))
+                admin_user_id = session.get('admin_user_id')
+                
+                log_values = []
+                for entry in log_entries:
+                    log_values.append((
+                        admin_user_id, entry['operation_type'], entry['producto_id'], 
+                        entry['ubicacion_id'], entry['old_quantity'], entry['new_quantity'], 
+                        entry['description'], ip_address
+                    ))
+                
+                conn.executemany('''
+                    INSERT INTO operation_logs (admin_user_id, operation_type, producto_id, ubicacion_id, 
+                                              old_quantity, new_quantity, description, ip_address)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', log_values)
             
-            cambios_aplicados += 1
-        
-        conn.commit()
-        conn.close()
+            # Confirmar transacción
+            conn.commit()
+            
+            # Log consolidado en archivo
+            logging.info(f"ADMIN_OP: {session.get('admin_username')} - BULK_STOCK_EDIT - {cambios_aplicados} cambios aplicados")
+            
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()
         
         return jsonify({
             'success': True, 
