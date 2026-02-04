@@ -42,9 +42,9 @@ fi
 
 # Determine docker command
 if groups $USER | grep -q '\bdocker\b'; then
-    DOCKER_CMD="docker-compose"
+    DOCKER_CMD="docker compose"
 else
-    DOCKER_CMD="sudo docker-compose"
+    DOCKER_CMD="sudo docker compose"
     print_warning "Usando sudo para Docker"
 fi
 
@@ -55,7 +55,7 @@ print_step "2/4" "Construyendo imagen de desarrollo..."
 $DOCKER_CMD build
 
 print_step "3/4" "Iniciando contenedores en modo desarrollo..."
-$DOCKER_CMD -f docker-compose.yml -f docker-compose.dev.yml up -d
+$DOCKER_CMD -f docker compose.yml -f docker compose.dev.yml up -d
 
 print_step "4/4" "Verificando estado..."
 $DOCKER_CMD ps

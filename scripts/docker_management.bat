@@ -43,7 +43,7 @@ goto menu
 :status
 echo.
 echo Estado de contenedores:
-docker-compose ps
+docker compose ps
 echo.
 echo Imagenes disponibles:
 docker images | findstr inventario
@@ -54,14 +54,14 @@ goto menu
 :logs
 echo.
 echo Mostrando logs en tiempo real (Ctrl+C para salir)...
-docker-compose logs -f
+docker compose logs -f
 goto menu
 
 :restart
 echo.
 echo Reiniciando contenedores...
-docker-compose restart
-docker-compose ps
+docker compose restart
+docker compose ps
 echo.
 pause
 goto menu
@@ -69,7 +69,7 @@ goto menu
 :stop
 echo.
 echo Deteniendo contenedores...
-docker-compose down
+docker compose down
 echo Contenedores detenidos.
 echo.
 pause
@@ -95,7 +95,7 @@ goto menu
 :backup
 echo.
 echo Creando backup de base de datos...
-docker-compose exec inventario-app cp /app/inventario.db /app/backup_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%.db
+docker compose exec inventario-app cp /app/inventario.db /app/backup_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%.db
 echo Backup creado en el contenedor.
 echo Para descargarlo usa: docker cp inventario-ppg:/app/backup_*.db .
 echo.

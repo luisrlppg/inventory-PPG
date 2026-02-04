@@ -13,9 +13,9 @@ NC='\033[0m'
 
 # Determine docker command
 if groups $USER | grep -q '\bdocker\b'; then
-    DOCKER_CMD="docker-compose"
+    DOCKER_CMD="docker compose"
 else
-    DOCKER_CMD="sudo docker-compose"
+    DOCKER_CMD="sudo docker compose"
 fi
 
 print_header() {
@@ -139,7 +139,7 @@ show_system_info() {
     echo "OS: $(lsb_release -d | cut -f2)"
     echo "Kernel: $(uname -r)"
     echo "Docker: $(docker --version)"
-    echo "Docker Compose: $(docker-compose --version)"
+    echo "Docker Compose: $(docker compose --version)"
     echo
     echo -e "${BLUE}Recursos del sistema:${NC}"
     echo "CPU: $(nproc) cores"

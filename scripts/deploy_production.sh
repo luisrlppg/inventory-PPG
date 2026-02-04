@@ -38,14 +38,14 @@ print_error() {
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     print_error "Docker no está instalado. Instálalo primero:"
-    echo "sudo apt update && sudo apt install -y docker.io docker-compose"
+    echo "sudo apt update && sudo apt install -y docker.io docker compose"
     exit 1
 fi
 
 # Check if Docker Compose is available
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     print_error "Docker Compose no está instalado. Instálalo primero:"
-    echo "sudo apt install -y docker-compose"
+    echo "sudo apt install -y docker compose"
     exit 1
 fi
 
@@ -60,14 +60,14 @@ if ! groups $USER | grep -q '\bdocker\b'; then
     if [[ ! "$response" =~ ^[Yy]$ ]]; then
         exit 1
     fi
-    DOCKER_CMD="sudo docker-compose"
+    DOCKER_CMD="sudo docker compose"
 else
-    DOCKER_CMD="docker-compose"
+    DOCKER_CMD="docker compose"
 fi
 
 print_step "1/6" "Verificando archivos necesarios..."
-if [[ ! -f "docker-compose.yml" ]]; then
-    print_error "docker-compose.yml no encontrado"
+if [[ ! -f "docker compose.yml" ]]; then
+    print_error "docker compose.yml no encontrado"
     exit 1
 fi
 if [[ ! -f "Dockerfile" ]]; then
