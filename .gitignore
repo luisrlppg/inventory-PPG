@@ -1,9 +1,4 @@
-# Entorno virtual de Python
-venv/
-env/
-.env
-
-# Archivos de Python
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -26,50 +21,34 @@ wheels/
 *.egg
 MANIFEST
 
-# Base de datos (comentar si quieres incluir la DB en el repo)
-# inventario.db
+# Virtual Environment
+venv/
+env/
+ENV/
 
-# Logs
-logs/
-*.log
-
-# Archivos temporales
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo
-*~
-
-# Archivos del sistema
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDEs
+# IDE
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
+*.swp
+*.swo
 
-# Archivos de configuración local
-config_local.py
-.env.local
+# Database
+*.db-journal
 
-# Imágenes grandes (opcional)
-# imagenes/*.jpg
-# imagenes/*.png
+# Logs
+logs/*.log
+*.log
 
-# Respaldos
-respaldos/
-backup/
+# Data backups (keep structure but ignore content)
+data/*.db
+data/*backup*.db
 
-# Archivos de desarrollo temporal
-temp/
-tmp/
-test_*
-debug_*
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Environment
+.env
