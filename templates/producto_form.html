@@ -90,6 +90,23 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label for="proveedor_id" class="form-label">Proveedor</label>
+                                <select class="form-select" id="proveedor_id" name="proveedor_id">
+                                    <option value="">Seleccionar proveedor...</option>
+                                    {% for proveedor in proveedores %}
+                                    <option value="{{ proveedor.id }}" 
+                                            {{ 'selected' if producto and producto.proveedor_id == proveedor.id }}>
+                                        {{ proveedor.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label for="maquina_id" class="form-label">Máquina</label>
                                 <select class="form-select" id="maquina_id" name="maquina_id">
                                     <option value="">Seleccionar máquina...</option>
@@ -102,13 +119,14 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="cantidad_requerida" class="form-label">Cantidad Requerida</label>
-                        <input type="number" class="form-control" id="cantidad_requerida" name="cantidad_requerida" 
-                               value="{{ producto.cantidad_requerida if producto else 1 }}" min="0">
-                        <div class="form-text">Cantidad mínima necesaria en inventario</div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="cantidad_requerida" class="form-label">Cantidad Requerida</label>
+                                <input type="number" class="form-control" id="cantidad_requerida" name="cantidad_requerida" 
+                                       value="{{ producto.cantidad_requerida if producto else 1 }}" min="0">
+                                <div class="form-text">Cantidad mínima necesaria en inventario</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">

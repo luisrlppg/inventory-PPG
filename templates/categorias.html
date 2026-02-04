@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Categorías - Inventario PPG{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-tags me-2"></i>Gestión de Categorías</h2>
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('nueva_categoria') }}'">
+            <i class="fas fa-plus me-1"></i>
+            Nueva Categoría
+        </button>
+        <button type="button" class="btn btn-success" onclick="window.location.href='{{ url_for('nueva_subcategoria') }}'">
+            <i class="fas fa-plus me-1"></i>
+            Nueva Subcategoría
+        </button>
+        <button type="button" class="btn btn-info" onclick="exportarCategorias()">
+            <i class="fas fa-download me-1"></i>
+            Exportar CSV
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <form method="GET" id="filtrosForm">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" name="search" id="search" 
+                       value="{{ filters.search }}" placeholder="Buscar por nombre de categoría o subcategoría...">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Tabs para Categorías y Subcategorías -->
+<ul class="nav nav-tabs" id="categoriaTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="categorias-tab" data-bs-toggle="tab" data-bs-target="#categorias-pane" 
+                type="button" role="tab">
+            <i class="fas fa-folder me-1"></i>
+            Categorías ({{ categorias|length }})
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="subcategorias-tab" data-bs-toggle="tab" data-bs-target="#subcategorias-pane" 
+                type="button" role="tab">
+            <i class="fas fa-folder-open me-1"></i>
+            Subcategorías ({{ subcategorias|length }})
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="categoriaTabContent">
+    <!-- Tab de Categorías -->
+    <div class="tab-pane fade show active" id="categorias-pane" role="tabpanel">
+        <div class="table-responsive mt-3">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Subcategorías</th>
+                        <th>Productos</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for categoria in categorias %}
+                    <tr>
+                        <td>{{ categoria.id }}</td>
+                        <td>
+                            <strong>{{ categoria.nombre }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ categoria.subcategorias_count }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ categoria.productos_count }}</span>
+                        </td>
+                        <td>
+                            {% if categoria.fecha_creacion %}
+                                {{ categoria.fecha_creacion[:10] }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="verDetallesCategoria({{ categoria.id }}, '{{ categoria.nombre }}')"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" 
+                                        onclick="window.location.href='{{ url_for('editar_categoria', id=categoria.id) }}'"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if categoria.productos_count == 0 and categoria.subcategorias_count == 0 %}
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="confirmarEliminarCategoria({{ categoria.id }}, '{{ categoria.nombre }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-secondary" disabled
+                                        title="No se puede eliminar: tiene productos o subcategorías">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            <i class="fas fa-folder-open fa-2x mb-2"></i>
+                            <br>No hay categorías registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tab de Subcategorías -->
+    <div class="tab-pane fade" id="subcategorias-pane" role="tabpanel">
+        <div class="table-responsive mt-3">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Categoría</th>
+                        <th>Productos</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subcategoria in subcategorias %}
+                    <tr>
+                        <td>{{ subcategoria.id }}</td>
+                        <td>
+                            <strong>{{ subcategoria.nombre }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ subcategoria.categoria_nombre }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary">{{ subcategoria.productos_count }}</span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-info" 
+                                        onclick="verDetallesSubcategoria({{ subcategoria.id }}, '{{ subcategoria.nombre }}', '{{ subcategoria.categoria_nombre }}')"
+                                        title="Ver detalles">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-warning" 
+                                        onclick="window.location.href='{{ url_for('editar_subcategoria', id=subcategoria.id) }}'"
+                                        title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% if subcategoria.productos_count == 0 %}
+                                <button type="button" class="btn btn-outline-danger" 
+                                        onclick="confirmarEliminarSubcategoria({{ subcategoria.id }}, '{{ subcategoria.nombre }}')"
+                                        title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-secondary" disabled
+                                        title="No se puede eliminar: tiene productos asignados">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-folder-open fa-2x mb-2"></i>
+                            <br>No hay subcategorías registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de categoría -->
+<div class="modal fade" id="detallesCategoriaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-folder me-2"></i>
+                    Detalles de Categoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesCategoriaContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de subcategoría -->
+<div class="modal fade" id="detallesSubcategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-folder-open me-2"></i>
+                    Detalles de Subcategoría
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesSubcategoriaContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verDetallesCategoria(id, nombre) {
+    document.getElementById('detallesCategoriaContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    
+    fetch(`/api/categoria/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            let subcategoriasHtml = '';
+            if (data.subcategorias && data.subcategorias.length > 0) {
+                subcategoriasHtml = data.subcategorias.map(sc => 
+                    `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        ${sc.nombre}
+                        <span class="badge bg-primary rounded-pill">${sc.productos_count} productos</span>
+                    </li>`
+                ).join('');
+            } else {
+                subcategoriasHtml = '<li class="list-group-item text-muted">No hay subcategorías</li>';
+            }
+            
+            document.getElementById('detallesCategoriaContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle me-2"></i>Información General</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>ID:</strong> ${data.id}</li>
+                            <li class="list-group-item"><strong>Nombre:</strong> ${data.nombre}</li>
+                            <li class="list-group-item"><strong>Subcategorías:</strong> ${data.subcategorias_count}</li>
+                            <li class="list-group-item"><strong>Productos:</strong> ${data.productos_count}</li>
+                            <li class="list-group-item"><strong>Creada:</strong> ${data.fecha_creacion || 'No disponible'}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-folder-open me-2"></i>Subcategorías</h6>
+                        <ul class="list-group">
+                            ${subcategoriasHtml}
+                        </ul>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('detallesCategoriaContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar los detalles: ${error.message}
+                </div>
+            `;
+        });
+    
+    new bootstrap.Modal(document.getElementById('detallesCategoriaModal')).show();
+}
+
+function verDetallesSubcategoria(id, nombre, categoriaNombre) {
+    document.getElementById('detallesSubcategoriaContent').innerHTML = `
+        <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle me-2"></i>Información de Subcategoría</h6>
+            <ul class="list-unstyled mb-0">
+                <li><strong>ID:</strong> ${id}</li>
+                <li><strong>Nombre:</strong> ${nombre}</li>
+                <li><strong>Categoría:</strong> ${categoriaNombre}</li>
+            </ul>
+        </div>
+    `;
+    
+    new bootstrap.Modal(document.getElementById('detallesSubcategoriaModal')).show();
+}
+
+function confirmarEliminarCategoria(id, nombre) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la categoría "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/categoria/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function confirmarEliminarSubcategoria(id, nombre) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la subcategoría "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/subcategoria/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function exportarCategorias() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = '/exportar/categorias?' + params.toString();
+}
+</script>
+{% endblock %}

@@ -12,6 +12,9 @@ Esta carpeta contiene herramientas para probar y diagnosticar la aplicación.
 - **`test_performance.py`** - Prueba rendimiento de API y base de datos
 - **`test_entrada_material.py`** - Verifica funcionalidad de entrada de material
 
+### 🏷️ **Testing de Funcionalidades:**
+- **`test_categorias.py`** - Verifica gestión de categorías y subcategorías
+
 ## 🎯 Uso
 
 ### Antes del Despliegue:
@@ -30,6 +33,9 @@ python tests/test_performance.py
 
 # Verificar entrada de material (después del fix)
 python tests/test_entrada_material.py
+
+# Probar gestión de categorías
+python tests/test_categorias.py
 ```
 
 ## 📊 Qué Hacen los Tests
@@ -55,7 +61,13 @@ python tests/test_entrada_material.py
 - ⚡ Simula actualización de stock
 - 📊 Reporta métricas de rendimiento
 
-### `test_entrada_material.py`:
+### `test_categorias.py`:
+- 🔍 Verifica estructura de base de datos
+- 🧪 Prueba operaciones CRUD (crear, leer, actualizar, eliminar)
+- 🌐 Verifica interfaz web y formularios
+- 📊 Analiza consistencia de datos
+- 🔗 Verifica relaciones categoría-subcategoría
+- ✅ Confirma que las validaciones funcionan
 - 🔍 Verifica productos sin stock
 - 📦 Simula escenario: stock → 0 → re-agregar
 - ✅ Confirma que el fix funciona
@@ -70,6 +82,7 @@ python tests/test_entrada_material.py
 ### Durante Desarrollo:
 1. `test_performance.py` - Después de cambios importantes
 2. `test_entrada_material.py` - Después de modificar inventario
+3. `test_categorias.py` - Después de cambios en categorías
 
 ### Resolución de Problemas:
 1. `diagnose_slowness.py` - Para lentitud

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if maquina %}Editar Máquina{% else %}Nueva Máquina{% endif %} - Inventario PPG
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-cog me-2"></i>
+                    {% if maquina %}
+                        Editar Máquina: {{ maquina.nombre }}
+                    {% else %}
+                        Nueva Máquina
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('guardar_maquina') }}">
+                    {% if maquina %}
+                        <input type="hidden" name="maquina_id" value="{{ maquina.id }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            Nombre de la Máquina *
+                        </label>
+                        <input type="text" class="form-control" name="nombre" id="nombre" 
+                               value="{{ maquina.nombre if maquina else '' }}" 
+                               placeholder="Ej: Extrusora 1, Inyectora A, Molino Principal..." required>
+                        <div class="form-text">
+                            El nombre debe ser único y descriptivo
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">
+                            <i class="fas fa-align-left me-1"></i>
+                            Descripción (Opcional)
+                        </label>
+                        <textarea class="form-control" name="descripcion" id="descripcion" rows="3"
+                                  placeholder="Descripción detallada de la máquina, especificaciones, ubicación, etc.">{{ maquina.descripcion if maquina and maquina.descripcion else '' }}</textarea>
+                        <div class="form-text">
+                            Información adicional sobre la máquina
+                        </div>
+                    </div>
+                    
+                    {% if maquina and productos %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-boxes me-1"></i>
+                            Productos que Usa Esta Máquina
+                        </label>
+                        <div class="border rounded p-3 bg-light">
+                            {% for producto in productos %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>
+                                    <i class="fas fa-box me-2 text-muted"></i>
+                                    <strong>{{ producto.descripcion }}</strong>
+                                    {% if producto.codigo %}
+                                    <br><small class="text-muted ms-4">Código: {{ producto.codigo }}</small>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <span class="badge bg-info me-2">ID: {{ producto.id }}</span>
+                                    <a href="{{ url_for('editar_producto', id=producto.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="mt-3 pt-3 border-top">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Para asignar más productos a esta máquina, edita los productos desde la sección Productos
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('maquinas') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Volver
+                        </a>
+                        <div>
+                            {% if maquina %}
+                                <button type="button" class="btn btn-outline-danger me-2" 
+                                        onclick="confirmarEliminar()"
+                                        {% if productos and productos|length > 0 %}disabled{% endif %}>
+                                    <i class="fas fa-trash me-1"></i>
+                                    Eliminar
+                                </button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {% if maquina %}Actualizar{% else %}Crear{% endif %} Máquina
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if maquina %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estadísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                            <h4 class="mb-0">{{ productos|length if productos else 0 }}</h4>
+                            <small class="text-muted">Productos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-calendar fa-2x text-success mb-2"></i>
+                            <div class="mb-0">
+                                <small class="text-muted">Creada</small>
+                                <br>
+                                <strong>{{ maquina.fecha_creacion[:10] if maquina.fecha_creacion else 'N/A' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-cog fa-2x text-info mb-2"></i>
+                            <div class="mb-0">
+                                <small class="text-muted">Estado</small>
+                                <br>
+                                <strong class="text-success">Activa</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if maquina %}
+<!-- Formulario oculto para eliminar -->
+<form id="eliminarForm" method="POST" action="{{ url_for('eliminar_maquina', id=maquina.id) }}" style="display: none;">
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if maquina %}
+function confirmarEliminar() {
+    const nombre = "{{ maquina.nombre }}";
+    const productos = {{ productos|length if productos else 0 }};
+    
+    if (productos > 0) {
+        alert(`No se puede eliminar la máquina "${nombre}" porque tiene ${productos} producto(s) asignado(s).`);
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar la máquina "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        document.getElementById('eliminarForm').submit();
+    }
+}
+{% endif %}
+
+// Auto-focus en el campo nombre
+document.getElementById('nombre').focus();
+
+// Validación en tiempo real
+document.getElementById('nombre').addEventListener('input', function() {
+    const valor = this.value.trim();
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    if (valor.length < 2) {
+        this.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+        submitBtn.disabled = false;
+    }
+});
+
+// Contador de caracteres para descripción
+const descripcionField = document.getElementById('descripcion');
+if (descripcionField) {
+    const maxLength = 500;
+    const counter = document.createElement('div');
+    counter.className = 'form-text text-end';
+    counter.id = 'descripcionCounter';
+    descripcionField.parentNode.appendChild(counter);
+    
+    function updateCounter() {
+        const remaining = maxLength - descripcionField.value.length;
+        counter.textContent = `${descripcionField.value.length}/${maxLength} caracteres`;
+        
+        if (remaining < 50) {
+            counter.className = 'form-text text-end text-warning';
+        } else if (remaining < 0) {
+            counter.className = 'form-text text-end text-danger';
+        } else {
+            counter.className = 'form-text text-end text-muted';
+        }
+    }
+    
+    descripcionField.addEventListener('input', updateCounter);
+    updateCounter(); // Initial count
+}
+</script>
+{% endblock %}

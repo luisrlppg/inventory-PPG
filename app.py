@@ -308,14 +308,16 @@ def inventario():
     # Query para obtener solo productos con stock > 0 (para la tabla)
     query = '''
         SELECT p.*, c.nombre as categoria, sc.nombre as subcategoria, 
-               m.nombre as marca, mq.nombre as maquina,
+               m.nombre as marca,
+               GROUP_CONCAT(mq.nombre, ', ') as maquinas,
                COALESCE(SUM(i.cantidad), 0) as stock_total,
                GROUP_CONCAT(u.codigo || ':' || i.cantidad, ', ') as ubicaciones_detalle
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
         LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
         LEFT JOIN marcas m ON p.marca_id = m.id
-        LEFT JOIN maquinas mq ON p.maquina_id = mq.id
+        LEFT JOIN producto_maquinas pm ON p.id = pm.producto_id
+        LEFT JOIN maquinas mq ON pm.maquina_id = mq.id
         LEFT JOIN inventario i ON p.id = i.producto_id
         LEFT JOIN ubicaciones u ON i.ubicacion_id = u.id
         WHERE 1=1
@@ -369,9 +371,10 @@ def nuevo_producto():
     categorias = conn.execute('SELECT * FROM categorias ORDER BY nombre').fetchall()
     marcas = conn.execute('SELECT * FROM marcas ORDER BY nombre').fetchall()
     maquinas = conn.execute('SELECT * FROM maquinas ORDER BY nombre').fetchall()
+    proveedores = conn.execute('SELECT * FROM proveedores ORDER BY nombre').fetchall()
     
     conn.close()
-    return render_template('producto_form.html', categorias=categorias, marcas=marcas, maquinas=maquinas)
+    return render_template('producto_form.html', categorias=categorias, marcas=marcas, maquinas=maquinas, proveedores=proveedores)
 
 @app.route('/producto/editar/<int:id>')
 def editar_producto(id):
@@ -380,12 +383,13 @@ def editar_producto(id):
     
     producto = conn.execute('''
         SELECT p.*, c.nombre as categoria, sc.nombre as subcategoria, 
-               m.nombre as marca, mq.nombre as maquina
+               m.nombre as marca, mq.nombre as maquina, pr.nombre as proveedor
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
         LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
         LEFT JOIN marcas m ON p.marca_id = m.id
         LEFT JOIN maquinas mq ON p.maquina_id = mq.id
+        LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
         WHERE p.id = ?
     ''', (id,)).fetchone()
     
@@ -398,10 +402,11 @@ def editar_producto(id):
                                 (producto['categoria_id'],)).fetchall()
     marcas = conn.execute('SELECT * FROM marcas ORDER BY nombre').fetchall()
     maquinas = conn.execute('SELECT * FROM maquinas ORDER BY nombre').fetchall()
+    proveedores = conn.execute('SELECT * FROM proveedores ORDER BY nombre').fetchall()
     
     conn.close()
     return render_template('producto_form.html', producto=producto, categorias=categorias, 
-                         subcategorias=subcategorias, marcas=marcas, maquinas=maquinas)
+                         subcategorias=subcategorias, marcas=marcas, maquinas=maquinas, proveedores=proveedores)
 
 @app.route('/producto/guardar', methods=['POST'])
 def guardar_producto():
@@ -414,6 +419,7 @@ def guardar_producto():
         categoria_id = request.form['categoria_id'] if request.form['categoria_id'] else None
         subcategoria_id = request.form['subcategoria_id'] if request.form['subcategoria_id'] else None
         marca_id = request.form['marca_id'] if request.form['marca_id'] else None
+        proveedor_id = request.form['proveedor_id'] if request.form['proveedor_id'] else None
         notas = request.form['notas']
         cantidad_requerida = int(request.form['cantidad_requerida']) if request.form['cantidad_requerida'] else 1
         maquina_id = request.form['maquina_id'] if request.form['maquina_id'] else None
@@ -424,18 +430,18 @@ def guardar_producto():
             conn.execute('''
                 UPDATE productos 
                 SET descripcion=?, codigo=?, categoria_id=?, subcategoria_id=?, marca_id=?, 
-                    notas=?, cantidad_requerida=?, maquina_id=?, fecha_actualizacion=CURRENT_TIMESTAMP
+                    proveedor_id=?, notas=?, cantidad_requerida=?, maquina_id=?, fecha_actualizacion=CURRENT_TIMESTAMP
                 WHERE id=?
             ''', (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                  notas, cantidad_requerida, maquina_id, producto_id))
+                  proveedor_id, notas, cantidad_requerida, maquina_id, producto_id))
             flash('Producto actualizado exitosamente', 'success')
         else:  # Crear nuevo producto
             conn.execute('''
                 INSERT INTO productos (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                                     notas, cantidad_requerida, maquina_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                                     proveedor_id, notas, cantidad_requerida, maquina_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                  notas, cantidad_requerida, maquina_id))
+                  proveedor_id, notas, cantidad_requerida, maquina_id))
             flash('Producto creado exitosamente', 'success')
         
         conn.commit()
@@ -766,6 +772,171 @@ def api_subcategorias(categoria_id):
     conn.close()
     return jsonify([dict(sc) for sc in subcategorias])
 
+@app.route('/api/categoria/<int:id>')
+def api_categoria(id):
+    """API para obtener detalles de una categoría"""
+    conn = get_db_connection()
+    
+    # Obtener información de la categoría
+    categoria = conn.execute('''
+        SELECT c.*, COUNT(DISTINCT sc.id) as subcategorias_count,
+               COUNT(DISTINCT p.id) as productos_count
+        FROM categorias c
+        LEFT JOIN subcategorias sc ON c.id = sc.categoria_id
+        LEFT JOIN productos p ON c.id = p.categoria_id
+        WHERE c.id = ?
+        GROUP BY c.id
+    ''', (id,)).fetchone()
+    
+    if not categoria:
+        conn.close()
+        return jsonify({'error': 'Categoría no encontrada'}), 404
+    
+    # Obtener subcategorías de esta categoría
+    subcategorias = conn.execute('''
+        SELECT sc.id, sc.nombre, COUNT(DISTINCT p.id) as productos_count
+        FROM subcategorias sc
+        LEFT JOIN productos p ON sc.id = p.subcategoria_id
+        WHERE sc.categoria_id = ?
+        GROUP BY sc.id
+        ORDER BY sc.nombre
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    
+    # Preparar respuesta
+    resultado = dict(categoria)
+    resultado['subcategorias'] = [dict(sc) for sc in subcategorias]
+    
+    return jsonify(resultado)
+
+@app.route('/api/maquina/<int:id>')
+def api_maquina(id):
+    """API para obtener detalles de una máquina"""
+    conn = get_db_connection()
+    
+    # Obtener información de la máquina
+    maquina = conn.execute('''
+        SELECT m.*, COUNT(DISTINCT pm.producto_id) as productos_count
+        FROM maquinas m
+        LEFT JOIN producto_maquinas pm ON m.id = pm.maquina_id
+        WHERE m.id = ?
+        GROUP BY m.id
+    ''', (id,)).fetchone()
+    
+    if not maquina:
+        conn.close()
+        return jsonify({'error': 'Máquina no encontrada'}), 404
+    
+    # Obtener productos que usan esta máquina
+    productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo
+        FROM productos p
+        JOIN producto_maquinas pm ON p.id = pm.producto_id
+        WHERE pm.maquina_id = ?
+        ORDER BY p.descripcion
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    
+    # Preparar respuesta
+    resultado = dict(maquina)
+    resultado['productos'] = [dict(prod) for prod in productos]
+    
+    return jsonify(resultado)
+
+@app.route('/exportar/categorias')
+def exportar_categorias():
+    """Exportar categorías y subcategorías a CSV"""
+    conn = get_db_connection()
+    
+    # Obtener los mismos filtros que en la vista
+    search = request.args.get('search', '').strip()
+    
+    # Query para categorías
+    query_categorias = '''
+        SELECT c.id, c.nombre, c.fecha_creacion,
+               COUNT(DISTINCT sc.id) as subcategorias_count,
+               COUNT(DISTINCT p.id) as productos_count
+        FROM categorias c
+        LEFT JOIN subcategorias sc ON c.id = sc.categoria_id
+        LEFT JOIN productos p ON c.id = p.categoria_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query_categorias += ' AND c.nombre LIKE ?'
+        params.append(f'%{search}%')
+    
+    query_categorias += ' GROUP BY c.id ORDER BY c.nombre'
+    
+    categorias = conn.execute(query_categorias, params).fetchall()
+    
+    # Query para subcategorías
+    query_subcategorias = '''
+        SELECT sc.id, sc.nombre, c.nombre as categoria_nombre,
+               COUNT(DISTINCT p.id) as productos_count
+        FROM subcategorias sc
+        JOIN categorias c ON sc.categoria_id = c.id
+        LEFT JOIN productos p ON sc.id = p.subcategoria_id
+        WHERE 1=1
+    '''
+    
+    if search:
+        query_subcategorias += ' AND (sc.nombre LIKE ? OR c.nombre LIKE ?)'
+        params.extend([f'%{search}%', f'%{search}%'])
+    
+    query_subcategorias += ' GROUP BY sc.id ORDER BY c.nombre, sc.nombre'
+    
+    subcategorias = conn.execute(query_subcategorias, params).fetchall()
+    
+    conn.close()
+    
+    # Crear CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Sección de Categorías
+    writer.writerow(['=== CATEGORÍAS ==='])
+    writer.writerow(['ID', 'Nombre', 'Subcategorías', 'Productos', 'Fecha Creación'])
+    
+    for categoria in categorias:
+        writer.writerow([
+            categoria['id'],
+            categoria['nombre'],
+            categoria['subcategorias_count'],
+            categoria['productos_count'],
+            categoria['fecha_creacion'] or ''
+        ])
+    
+    # Separador
+    writer.writerow([])
+    
+    # Sección de Subcategorías
+    writer.writerow(['=== SUBCATEGORÍAS ==='])
+    writer.writerow(['ID', 'Nombre', 'Categoría', 'Productos'])
+    
+    for subcategoria in subcategorias:
+        writer.writerow([
+            subcategoria['id'],
+            subcategoria['nombre'],
+            subcategoria['categoria_nombre'],
+            subcategoria['productos_count']
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'categorias_{timestamp}.csv'
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    return response
+
 @app.route('/api/producto/<int:id>')
 def api_producto(id):
     """API para obtener detalles de un producto con ubicaciones de stock"""
@@ -846,7 +1017,764 @@ def ubicaciones():
                          ubicaciones=ubicaciones,
                          filters={'search': search})
 
-@app.route('/ubicacion/nueva')
+@app.route('/categorias')
+def categorias():
+    """Vista de gestión de categorías y subcategorías"""
+    conn = get_db_connection()
+    
+    # Obtener filtros
+    search = request.args.get('search', '').strip()
+    
+    # Query para obtener categorías con información de subcategorías y productos
+    query = '''
+        SELECT c.id, c.nombre, c.fecha_creacion,
+               COUNT(DISTINCT sc.id) as subcategorias_count,
+               COUNT(DISTINCT p.id) as productos_count
+        FROM categorias c
+        LEFT JOIN subcategorias sc ON c.id = sc.categoria_id
+        LEFT JOIN productos p ON c.id = p.categoria_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND c.nombre LIKE ?'
+        search_param = f'%{search}%'
+        params.append(search_param)
+    
+    query += ' GROUP BY c.id ORDER BY c.nombre'
+    
+    categorias = conn.execute(query, params).fetchall()
+    
+    # Obtener todas las subcategorías para mostrar en la tabla
+    subcategorias_query = '''
+        SELECT sc.id, sc.nombre, sc.categoria_id, c.nombre as categoria_nombre,
+               COUNT(DISTINCT p.id) as productos_count
+        FROM subcategorias sc
+        JOIN categorias c ON sc.categoria_id = c.id
+        LEFT JOIN productos p ON sc.id = p.subcategoria_id
+        WHERE 1=1
+    '''
+    
+    if search:
+        subcategorias_query += ' AND (sc.nombre LIKE ? OR c.nombre LIKE ?)'
+        params.extend([search_param, search_param])
+    
+    subcategorias_query += ' GROUP BY sc.id ORDER BY c.nombre, sc.nombre'
+    
+    subcategorias = conn.execute(subcategorias_query, params).fetchall()
+    
+    conn.close()
+    
+    return render_template('categorias.html', 
+                         categorias=categorias,
+                         subcategorias=subcategorias,
+                         filters={'search': search})
+
+@app.route('/maquinas')
+def maquinas():
+    """Vista de gestión de máquinas"""
+    conn = get_db_connection()
+    
+    # Obtener filtros
+    search = request.args.get('search', '').strip()
+    
+    # Query para obtener máquinas con información de productos
+    query = '''
+        SELECT m.id, m.nombre, m.fecha_creacion,
+               COUNT(DISTINCT pm.producto_id) as productos_count
+        FROM maquinas m
+        LEFT JOIN producto_maquinas pm ON m.id = pm.maquina_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND m.nombre LIKE ?'
+        search_param = f'%{search}%'
+        params.append(search_param)
+    
+    query += ' GROUP BY m.id ORDER BY m.nombre'
+    
+    maquinas = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    return render_template('maquinas.html', 
+                         maquinas=maquinas,
+                         filters={'search': search})
+
+@app.route('/proveedores')
+def proveedores():
+    """Vista de gestión de proveedores"""
+    conn = get_db_connection()
+    
+    # Obtener filtros
+    search = request.args.get('search', '').strip()
+    
+    # Query para obtener proveedores con información de productos
+    query = '''
+        SELECT p.id, p.nombre, p.contacto, p.telefono, p.email, 
+               p.pagina_web, p.fecha_creacion,
+               COUNT(DISTINCT pr.id) as productos_count
+        FROM proveedores p
+        LEFT JOIN productos pr ON p.id = pr.proveedor_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND (p.nombre LIKE ? OR p.contacto LIKE ? OR p.email LIKE ?)'
+        search_param = f'%{search}%'
+        params.extend([search_param, search_param, search_param])
+    
+    query += ' GROUP BY p.id ORDER BY p.nombre'
+    
+    proveedores = conn.execute(query, params).fetchall()
+    conn.close()
+    
+    return render_template('proveedores.html', 
+                         proveedores=proveedores,
+                         filters={'search': search})
+
+@app.route('/proveedor/nuevo')
+def nuevo_proveedor():
+    """Formulario para nuevo proveedor"""
+    return render_template('proveedor_form.html')
+
+@app.route('/proveedor/editar/<int:id>')
+def editar_proveedor(id):
+    """Formulario para editar proveedor"""
+    conn = get_db_connection()
+    
+    proveedor = conn.execute('SELECT * FROM proveedores WHERE id = ?', (id,)).fetchone()
+    
+    if not proveedor:
+        flash('Proveedor no encontrado', 'error')
+        return redirect(url_for('proveedores'))
+    
+    # Obtener productos que usan este proveedor
+    productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo
+        FROM productos p
+        WHERE p.proveedor_id = ?
+        ORDER BY p.descripcion
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    return render_template('proveedor_form.html', proveedor=proveedor, productos=productos)
+
+@app.route('/proveedor/guardar', methods=['POST'])
+def guardar_proveedor():
+    """Guardar proveedor nuevo o editado"""
+    conn = get_db_connection()
+    
+    try:
+        nombre = request.form['nombre'].strip()
+        contacto = request.form.get('contacto', '').strip()
+        telefono = request.form.get('telefono', '').strip()
+        email = request.form.get('email', '').strip()
+        pagina_web = request.form.get('pagina_web', '').strip()
+        direccion = request.form.get('direccion', '').strip()
+        notas = request.form.get('notas', '').strip()
+        proveedor_id = request.form.get('proveedor_id')
+        
+        if not nombre:
+            flash('El nombre del proveedor es requerido', 'error')
+            return redirect(url_for('proveedores'))
+        
+        # Verificar que el nombre no esté en uso por otro proveedor
+        existing = conn.execute('SELECT id FROM proveedores WHERE nombre = ? AND id != ?', 
+                               (nombre, proveedor_id or 0)).fetchone()
+        
+        if existing:
+            flash(f'El nombre "{nombre}" ya está en uso por otro proveedor', 'error')
+            return redirect(url_for('proveedores'))
+        
+        if proveedor_id:  # Editar proveedor existente
+            conn.execute('''
+                UPDATE proveedores 
+                SET nombre=?, contacto=?, telefono=?, email=?, pagina_web=?, 
+                    direccion=?, notas=?, fecha_actualizacion=CURRENT_TIMESTAMP
+                WHERE id=?
+            ''', (nombre, contacto or None, telefono or None, email or None, 
+                  pagina_web or None, direccion or None, notas or None, proveedor_id))
+            flash('Proveedor actualizado exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='SUPPLIER_EDIT',
+                    description=f'Proveedor editado: {nombre}',
+                    conn=conn
+                )
+        else:  # Crear nuevo proveedor
+            cursor = conn.execute('''
+                INSERT INTO proveedores (nombre, contacto, telefono, email, pagina_web, direccion, notas)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (nombre, contacto or None, telefono or None, email or None, 
+                  pagina_web or None, direccion or None, notas or None))
+            nuevo_proveedor_id = cursor.lastrowid
+            flash('Proveedor creado exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='SUPPLIER_CREATE',
+                    description=f'Nuevo proveedor creado: {nombre}',
+                    conn=conn
+                )
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al guardar proveedor: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('proveedores'))
+
+@app.route('/proveedor/eliminar/<int:id>', methods=['POST'])
+def eliminar_proveedor(id):
+    """Eliminar proveedor (solo si no tiene productos)"""
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que no tenga productos
+        productos = conn.execute('SELECT COUNT(*) as count FROM productos WHERE proveedor_id = ?', (id,)).fetchone()
+        
+        if productos['count'] > 0:
+            flash('No se puede eliminar un proveedor que tiene productos asignados', 'error')
+        else:
+            proveedor = conn.execute('SELECT nombre FROM proveedores WHERE id = ?', (id,)).fetchone()
+            
+            if proveedor:
+                conn.execute('DELETE FROM proveedores WHERE id = ?', (id,))
+                conn.commit()
+                
+                flash(f'Proveedor "{proveedor["nombre"]}" eliminado exitosamente', 'success')
+                
+                # Log de administrador si está logueado
+                if is_admin_logged_in():
+                    log_admin_operation(
+                        operation_type='SUPPLIER_DELETE',
+                        description=f'Proveedor eliminado: {proveedor["nombre"]}',
+                        conn=conn
+                    )
+            else:
+                flash('Proveedor no encontrado', 'error')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al eliminar proveedor: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('proveedores'))
+
+@app.route('/api/proveedor/<int:id>')
+def api_proveedor(id):
+    """API para obtener detalles de un proveedor"""
+    conn = get_db_connection()
+    
+    try:
+        # Obtener información del proveedor
+        proveedor = conn.execute('SELECT * FROM proveedores WHERE id = ?', (id,)).fetchone()
+        
+        if not proveedor:
+            return jsonify({'error': 'Proveedor no encontrado'}), 404
+        
+        # Obtener productos que suministra este proveedor
+        productos = conn.execute('''
+            SELECT p.id, p.descripcion, p.codigo
+            FROM productos p
+            WHERE p.proveedor_id = ?
+            ORDER BY p.descripcion
+        ''', (id,)).fetchall()
+        
+        # Convertir a diccionario
+        resultado = dict(proveedor)
+        resultado['productos'] = [dict(p) for p in productos]
+        resultado['productos_count'] = len(productos)
+        
+        return jsonify(resultado)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        conn.close()
+
+@app.route('/exportar/proveedores')
+def exportar_proveedores():
+    """Exportar proveedores filtrados a CSV"""
+    conn = get_db_connection()
+    
+    try:
+        # Obtener filtros (mismos que en la vista)
+        search = request.args.get('search', '').strip()
+        
+        # Query para obtener proveedores con información de productos
+        query = '''
+            SELECT p.id, p.nombre, p.contacto, p.telefono, p.email, 
+                   p.pagina_web, p.direccion, p.notas, p.fecha_creacion,
+                   COUNT(DISTINCT pr.id) as productos_count
+            FROM proveedores p
+            LEFT JOIN productos pr ON p.id = pr.proveedor_id
+            WHERE 1=1
+        '''
+        
+        params = []
+        
+        if search:
+            query += ' AND (p.nombre LIKE ? OR p.contacto LIKE ? OR p.email LIKE ?)'
+            search_param = f'%{search}%'
+            params.extend([search_param, search_param, search_param])
+        
+        query += ' GROUP BY p.id ORDER BY p.nombre'
+        
+        proveedores = conn.execute(query, params).fetchall()
+        
+        # Crear CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Encabezados
+        writer.writerow([
+            'ID', 'Nombre', 'Contacto', 'Teléfono', 'Email', 
+            'Página Web', 'Dirección', 'Notas', 'Productos', 'Fecha Creación'
+        ])
+        
+        # Datos
+        for proveedor in proveedores:
+            writer.writerow([
+                proveedor['id'],
+                proveedor['nombre'],
+                proveedor['contacto'] or '',
+                proveedor['telefono'] or '',
+                proveedor['email'] or '',
+                proveedor['pagina_web'] or '',
+                proveedor['direccion'] or '',
+                proveedor['notas'] or '',
+                proveedor['productos_count'],
+                proveedor['fecha_creacion'][:10] if proveedor['fecha_creacion'] else ''
+            ])
+        
+        # Preparar respuesta
+        output.seek(0)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'proveedores_{timestamp}.csv'
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+        
+        return response
+        
+    except Exception as e:
+        flash(f'Error al exportar proveedores: {str(e)}', 'error')
+        return redirect(url_for('proveedores'))
+    finally:
+        conn.close()
+
+@app.route('/maquina/nueva')
+def nueva_maquina():
+    """Formulario para nueva máquina"""
+    return render_template('maquina_form.html')
+
+@app.route('/maquina/editar/<int:id>')
+def editar_maquina(id):
+    """Formulario para editar máquina"""
+    conn = get_db_connection()
+    
+    maquina = conn.execute('SELECT * FROM maquinas WHERE id = ?', (id,)).fetchone()
+    
+    if not maquina:
+        flash('Máquina no encontrada', 'error')
+        return redirect(url_for('maquinas'))
+    
+    # Obtener productos que usan esta máquina
+    productos = conn.execute('''
+        SELECT p.id, p.descripcion, p.codigo
+        FROM productos p
+        JOIN producto_maquinas pm ON p.id = pm.producto_id
+        WHERE pm.maquina_id = ?
+        ORDER BY p.descripcion
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    return render_template('maquina_form.html', maquina=maquina, productos=productos)
+
+@app.route('/maquina/guardar', methods=['POST'])
+def guardar_maquina():
+    """Guardar máquina nueva o editada"""
+    conn = get_db_connection()
+    
+    try:
+        nombre = request.form['nombre'].strip()
+        descripcion = request.form.get('descripcion', '').strip()
+        maquina_id = request.form.get('maquina_id')
+        
+        if not nombre:
+            flash('El nombre de la máquina es requerido', 'error')
+            return redirect(url_for('maquinas'))
+        
+        # Verificar que el nombre no esté en uso por otra máquina
+        existing = conn.execute('SELECT id FROM maquinas WHERE nombre = ? AND id != ?', 
+                               (nombre, maquina_id or 0)).fetchone()
+        
+        if existing:
+            flash(f'El nombre "{nombre}" ya está en uso por otra máquina', 'error')
+            return redirect(url_for('maquinas'))
+        
+        if maquina_id:  # Editar máquina existente
+            if descripcion:
+                conn.execute('UPDATE maquinas SET nombre=?, descripcion=? WHERE id=?', 
+                           (nombre, descripcion, maquina_id))
+            else:
+                conn.execute('UPDATE maquinas SET nombre=? WHERE id=?', (nombre, maquina_id))
+            flash('Máquina actualizada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='MACHINE_EDIT',
+                    description=f'Máquina editada: {nombre}',
+                    conn=conn
+                )
+        else:  # Crear nueva máquina
+            if descripcion:
+                cursor = conn.execute('INSERT INTO maquinas (nombre, descripcion) VALUES (?, ?)', 
+                                    (nombre, descripcion))
+            else:
+                cursor = conn.execute('INSERT INTO maquinas (nombre) VALUES (?)', (nombre,))
+            nueva_maquina_id = cursor.lastrowid
+            flash('Máquina creada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='MACHINE_CREATE',
+                    description=f'Nueva máquina creada: {nombre}',
+                    conn=conn
+                )
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al guardar máquina: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('maquinas'))
+
+@app.route('/maquina/eliminar/<int:id>', methods=['POST'])
+def eliminar_maquina(id):
+    """Eliminar máquina (solo si no tiene productos)"""
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que no tenga productos
+        productos = conn.execute('SELECT COUNT(*) as count FROM producto_maquinas WHERE maquina_id = ?', (id,)).fetchone()
+        
+        if productos['count'] > 0:
+            flash('No se puede eliminar una máquina que tiene productos asignados', 'error')
+        else:
+            maquina = conn.execute('SELECT nombre FROM maquinas WHERE id = ?', (id,)).fetchone()
+            
+            if maquina:
+                conn.execute('DELETE FROM maquinas WHERE id = ?', (id,))
+                conn.commit()
+                
+                flash(f'Máquina "{maquina["nombre"]}" eliminada exitosamente', 'success')
+                
+                # Log de administrador si está logueado
+                if is_admin_logged_in():
+                    log_admin_operation(
+                        operation_type='MACHINE_DELETE',
+                        description=f'Máquina eliminada: {maquina["nombre"]}',
+                        conn=conn
+                    )
+            else:
+                flash('Máquina no encontrada', 'error')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al eliminar máquina: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('maquinas'))
+def nueva_categoria():
+    """Formulario para nueva categoría"""
+    return render_template('categoria_form.html')
+
+@app.route('/categoria/editar/<int:id>')
+def editar_categoria(id):
+    """Formulario para editar categoría"""
+    conn = get_db_connection()
+    
+    categoria = conn.execute('SELECT * FROM categorias WHERE id = ?', (id,)).fetchone()
+    
+    if not categoria:
+        flash('Categoría no encontrada', 'error')
+        return redirect(url_for('categorias'))
+    
+    # Obtener subcategorías de esta categoría
+    subcategorias = conn.execute('''
+        SELECT sc.*, COUNT(DISTINCT p.id) as productos_count
+        FROM subcategorias sc
+        LEFT JOIN productos p ON sc.id = p.subcategoria_id
+        WHERE sc.categoria_id = ?
+        GROUP BY sc.id
+        ORDER BY sc.nombre
+    ''', (id,)).fetchall()
+    
+    conn.close()
+    return render_template('categoria_form.html', categoria=categoria, subcategorias=subcategorias)
+
+@app.route('/categoria/guardar', methods=['POST'])
+def guardar_categoria():
+    """Guardar categoría nueva o editada"""
+    conn = get_db_connection()
+    
+    try:
+        nombre = request.form['nombre'].strip()
+        categoria_id = request.form.get('categoria_id')
+        
+        if not nombre:
+            flash('El nombre de la categoría es requerido', 'error')
+            return redirect(url_for('categorias'))
+        
+        # Verificar que el nombre no esté en uso por otra categoría
+        existing = conn.execute('SELECT id FROM categorias WHERE nombre = ? AND id != ?', 
+                               (nombre, categoria_id or 0)).fetchone()
+        
+        if existing:
+            flash(f'El nombre "{nombre}" ya está en uso por otra categoría', 'error')
+            return redirect(url_for('categorias'))
+        
+        if categoria_id:  # Editar categoría existente
+            conn.execute('UPDATE categorias SET nombre=? WHERE id=?', (nombre, categoria_id))
+            flash('Categoría actualizada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='CATEGORY_EDIT',
+                    description=f'Categoría editada: {nombre}',
+                    conn=conn
+                )
+        else:  # Crear nueva categoría
+            cursor = conn.execute('INSERT INTO categorias (nombre) VALUES (?)', (nombre,))
+            nueva_categoria_id = cursor.lastrowid
+            flash('Categoría creada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='CATEGORY_CREATE',
+                    description=f'Nueva categoría creada: {nombre}',
+                    conn=conn
+                )
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al guardar categoría: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('categorias'))
+
+@app.route('/categoria/eliminar/<int:id>', methods=['POST'])
+def eliminar_categoria(id):
+    """Eliminar categoría (solo si no tiene productos o subcategorías)"""
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que no tenga productos
+        productos = conn.execute('SELECT COUNT(*) as count FROM productos WHERE categoria_id = ?', (id,)).fetchone()
+        
+        # Verificar que no tenga subcategorías
+        subcategorias = conn.execute('SELECT COUNT(*) as count FROM subcategorias WHERE categoria_id = ?', (id,)).fetchone()
+        
+        if productos['count'] > 0:
+            flash('No se puede eliminar una categoría que tiene productos asignados', 'error')
+        elif subcategorias['count'] > 0:
+            flash('No se puede eliminar una categoría que tiene subcategorías', 'error')
+        else:
+            categoria = conn.execute('SELECT nombre FROM categorias WHERE id = ?', (id,)).fetchone()
+            
+            if categoria:
+                conn.execute('DELETE FROM categorias WHERE id = ?', (id,))
+                conn.commit()
+                
+                flash(f'Categoría "{categoria["nombre"]}" eliminada exitosamente', 'success')
+                
+                # Log de administrador si está logueado
+                if is_admin_logged_in():
+                    log_admin_operation(
+                        operation_type='CATEGORY_DELETE',
+                        description=f'Categoría eliminada: {categoria["nombre"]}',
+                        conn=conn
+                    )
+            else:
+                flash('Categoría no encontrada', 'error')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al eliminar categoría: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('categorias'))
+
+@app.route('/subcategoria/nueva')
+def nueva_subcategoria():
+    """Formulario para nueva subcategoría"""
+    conn = get_db_connection()
+    categorias = conn.execute('SELECT * FROM categorias ORDER BY nombre').fetchall()
+    conn.close()
+    return render_template('subcategoria_form.html', categorias=categorias)
+
+@app.route('/subcategoria/editar/<int:id>')
+def editar_subcategoria(id):
+    """Formulario para editar subcategoría"""
+    conn = get_db_connection()
+    
+    subcategoria = conn.execute('''
+        SELECT sc.*, c.nombre as categoria_nombre
+        FROM subcategorias sc
+        JOIN categorias c ON sc.categoria_id = c.id
+        WHERE sc.id = ?
+    ''', (id,)).fetchone()
+    
+    if not subcategoria:
+        flash('Subcategoría no encontrada', 'error')
+        return redirect(url_for('categorias'))
+    
+    categorias = conn.execute('SELECT * FROM categorias ORDER BY nombre').fetchall()
+    
+    conn.close()
+    return render_template('subcategoria_form.html', subcategoria=subcategoria, categorias=categorias)
+
+@app.route('/subcategoria/guardar', methods=['POST'])
+def guardar_subcategoria():
+    """Guardar subcategoría nueva o editada"""
+    conn = get_db_connection()
+    
+    try:
+        nombre = request.form['nombre'].strip()
+        categoria_id = request.form['categoria_id']
+        subcategoria_id = request.form.get('subcategoria_id')
+        
+        if not nombre:
+            flash('El nombre de la subcategoría es requerido', 'error')
+            return redirect(url_for('categorias'))
+        
+        if not categoria_id:
+            flash('Debe seleccionar una categoría', 'error')
+            return redirect(url_for('categorias'))
+        
+        # Verificar que el nombre no esté en uso en la misma categoría
+        existing = conn.execute('''
+            SELECT id FROM subcategorias 
+            WHERE nombre = ? AND categoria_id = ? AND id != ?
+        ''', (nombre, categoria_id, subcategoria_id or 0)).fetchone()
+        
+        if existing:
+            flash(f'El nombre "{nombre}" ya está en uso en esta categoría', 'error')
+            return redirect(url_for('categorias'))
+        
+        # Obtener nombre de categoría para logs
+        categoria_info = conn.execute('SELECT nombre FROM categorias WHERE id = ?', (categoria_id,)).fetchone()
+        categoria_nombre = categoria_info['nombre'] if categoria_info else 'Desconocida'
+        
+        if subcategoria_id:  # Editar subcategoría existente
+            conn.execute('''
+                UPDATE subcategorias SET nombre=?, categoria_id=? WHERE id=?
+            ''', (nombre, categoria_id, subcategoria_id))
+            flash('Subcategoría actualizada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='SUBCATEGORY_EDIT',
+                    description=f'Subcategoría editada: {nombre} (Categoría: {categoria_nombre})',
+                    conn=conn
+                )
+        else:  # Crear nueva subcategoría
+            cursor = conn.execute('''
+                INSERT INTO subcategorias (nombre, categoria_id) VALUES (?, ?)
+            ''', (nombre, categoria_id))
+            nueva_subcategoria_id = cursor.lastrowid
+            flash('Subcategoría creada exitosamente', 'success')
+            
+            # Log de administrador si está logueado
+            if is_admin_logged_in():
+                log_admin_operation(
+                    operation_type='SUBCATEGORY_CREATE',
+                    description=f'Nueva subcategoría creada: {nombre} (Categoría: {categoria_nombre})',
+                    conn=conn
+                )
+        
+        conn.commit()
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al guardar subcategoría: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('categorias'))
+
+@app.route('/subcategoria/eliminar/<int:id>', methods=['POST'])
+def eliminar_subcategoria(id):
+    """Eliminar subcategoría (solo si no tiene productos)"""
+    conn = get_db_connection()
+    
+    try:
+        # Verificar que no tenga productos
+        productos = conn.execute('SELECT COUNT(*) as count FROM productos WHERE subcategoria_id = ?', (id,)).fetchone()
+        
+        if productos['count'] > 0:
+            flash('No se puede eliminar una subcategoría que tiene productos asignados', 'error')
+        else:
+            subcategoria = conn.execute('''
+                SELECT sc.nombre, c.nombre as categoria_nombre
+                FROM subcategorias sc
+                JOIN categorias c ON sc.categoria_id = c.id
+                WHERE sc.id = ?
+            ''', (id,)).fetchone()
+            
+            if subcategoria:
+                conn.execute('DELETE FROM subcategorias WHERE id = ?', (id,))
+                conn.commit()
+                
+                flash(f'Subcategoría "{subcategoria["nombre"]}" eliminada exitosamente', 'success')
+                
+                # Log de administrador si está logueado
+                if is_admin_logged_in():
+                    log_admin_operation(
+                        operation_type='SUBCATEGORY_DELETE',
+                        description=f'Subcategoría eliminada: {subcategoria["nombre"]} (Categoría: {subcategoria["categoria_nombre"]})',
+                        conn=conn
+                    )
+            else:
+                flash('Subcategoría no encontrada', 'error')
+        
+    except Exception as e:
+        conn.rollback()
+        flash(f'Error al eliminar subcategoría: {str(e)}', 'error')
+    finally:
+        conn.close()
+    
+    return redirect(url_for('categorias'))
 def nueva_ubicacion():
     """Formulario para nueva ubicación"""
     return render_template('ubicacion_form.html')
@@ -1403,6 +2331,86 @@ def imagenes(filename):
 def health_check():
     """Health check endpoint for Docker"""
     return {'status': 'healthy', 'timestamp': datetime.now().isoformat()}, 200
+
+@app.route('/exportar/maquinas')
+def exportar_maquinas():
+    """Exportar máquinas a CSV"""
+    conn = get_db_connection()
+    
+    # Obtener los mismos filtros que en la vista
+    search = request.args.get('search', '').strip()
+    
+    # Query para máquinas
+    query = '''
+        SELECT m.id, m.nombre, m.descripcion, m.fecha_creacion,
+               COUNT(DISTINCT pm.producto_id) as productos_count
+        FROM maquinas m
+        LEFT JOIN producto_maquinas pm ON m.id = pm.maquina_id
+        WHERE 1=1
+    '''
+    
+    params = []
+    
+    if search:
+        query += ' AND m.nombre LIKE ?'
+        params.append(f'%{search}%')
+    
+    query += ' GROUP BY m.id ORDER BY m.nombre'
+    
+    maquinas = conn.execute(query, params).fetchall()
+    
+    # Obtener detalles de productos por máquina
+    maquinas_con_productos = []
+    for maquina in maquinas:
+        productos = conn.execute('''
+            SELECT p.descripcion, p.codigo
+            FROM productos p
+            JOIN producto_maquinas pm ON p.id = pm.producto_id
+            WHERE pm.maquina_id = ?
+            ORDER BY p.descripcion
+        ''', (maquina['id'],)).fetchall()
+        
+        productos_str = '; '.join([f"{p['descripcion']} ({p['codigo']})" if p['codigo'] else p['descripcion'] for p in productos])
+        
+        maquinas_con_productos.append({
+            'id': maquina['id'],
+            'nombre': maquina['nombre'],
+            'descripcion': maquina['descripcion'] or '',
+            'productos_count': maquina['productos_count'],
+            'productos_detalle': productos_str,
+            'fecha_creacion': maquina['fecha_creacion'] or ''
+        })
+    
+    conn.close()
+    
+    # Crear CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Encabezados
+    writer.writerow(['ID', 'Nombre', 'Descripción', 'Productos (Cantidad)', 'Productos (Detalle)', 'Fecha Creación'])
+    
+    # Datos
+    for maquina in maquinas_con_productos:
+        writer.writerow([
+            maquina['id'],
+            maquina['nombre'],
+            maquina['descripcion'],
+            maquina['productos_count'],
+            maquina['productos_detalle'],
+            maquina['fecha_creacion']
+        ])
+    
+    # Preparar respuesta
+    output.seek(0)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'maquinas_{timestamp}.csv'
+    
+    response = make_response(output.getvalue())
+    response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+    response.headers['Content-Disposition'] = f'attachment; filename={filename}'
+    
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

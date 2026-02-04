@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if categoria %}Editar Categoría{% else %}Nueva Categoría{% endif %} - Inventario PPG
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-folder me-2"></i>
+                    {% if categoria %}
+                        Editar Categoría: {{ categoria.nombre }}
+                    {% else %}
+                        Nueva Categoría
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('guardar_categoria') }}">
+                    {% if categoria %}
+                        <input type="hidden" name="categoria_id" value="{{ categoria.id }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            Nombre de la Categoría *
+                        </label>
+                        <input type="text" class="form-control" name="nombre" id="nombre" 
+                               value="{{ categoria.nombre if categoria else '' }}" 
+                               placeholder="Ej: Herramientas, Repuestos, Materiales..." required>
+                        <div class="form-text">
+                            El nombre debe ser único y descriptivo
+                        </div>
+                    </div>
+                    
+                    {% if categoria and subcategorias %}
+                    <div class="mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-folder-open me-1"></i>
+                            Subcategorías Actuales
+                        </label>
+                        <div class="border rounded p-3 bg-light">
+                            {% for subcategoria in subcategorias %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span>
+                                    <i class="fas fa-folder-open me-2 text-muted"></i>
+                                    {{ subcategoria.nombre }}
+                                </span>
+                                <div>
+                                    <span class="badge bg-primary me-2">{{ subcategoria.productos_count }} productos</span>
+                                    <a href="{{ url_for('editar_subcategoria', id=subcategoria.id) }}" 
+                                       class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            
+                            <div class="mt-3 pt-3 border-top">
+                                <a href="{{ url_for('nueva_subcategoria') }}?categoria_id={{ categoria.id }}" 
+                                   class="btn btn-sm btn-success">
+                                    <i class="fas fa-plus me-1"></i>
+                                    Agregar Subcategoría
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('categorias') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Volver
+                        </a>
+                        <div>
+                            {% if categoria %}
+                                <button type="button" class="btn btn-outline-danger me-2" 
+                                        onclick="confirmarEliminar()"
+                                        {% if categoria.productos_count > 0 or categoria.subcategorias_count > 0 %}disabled{% endif %}>
+                                    <i class="fas fa-trash me-1"></i>
+                                    Eliminar
+                                </button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {% if categoria %}Actualizar{% else %}Crear{% endif %} Categoría
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if categoria %}
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Estadísticas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-folder-open fa-2x text-info mb-2"></i>
+                            <h4 class="mb-0">{{ subcategorias|length if subcategorias else 0 }}</h4>
+                            <small class="text-muted">Subcategorías</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                            <h4 class="mb-0">{{ categoria.productos_count if categoria.productos_count else 0 }}</h4>
+                            <small class="text-muted">Productos</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <i class="fas fa-calendar fa-2x text-success mb-2"></i>
+                            <div class="mb-0">
+                                <small class="text-muted">Creada</small>
+                                <br>
+                                <strong>{{ categoria.fecha_creacion[:10] if categoria.fecha_creacion else 'N/A' }}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if categoria %}
+<!-- Formulario oculto para eliminar -->
+<form id="eliminarForm" method="POST" action="{{ url_for('eliminar_categoria', id=categoria.id) }}" style="display: none;">
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if categoria %}
+function confirmarEliminar() {
+    const nombre = "{{ categoria.nombre }}";
+    const productos = {{ categoria.productos_count if categoria.productos_count else 0 }};
+    const subcategorias = {{ subcategorias|length if subcategorias else 0 }};
+    
+    if (productos > 0) {
+        alert(`No se puede eliminar la categoría "${nombre}" porque tiene ${productos} producto(s) asignado(s).`);
+        return;
+    }
+    
+    if (subcategorias > 0) {
+        alert(`No se puede eliminar la categoría "${nombre}" porque tiene ${subcategorias} subcategoría(s).`);
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar la categoría "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        document.getElementById('eliminarForm').submit();
+    }
+}
+{% endif %}
+
+// Auto-focus en el campo nombre
+document.getElementById('nombre').focus();
+
+// Validación en tiempo real
+document.getElementById('nombre').addEventListener('input', function() {
+    const valor = this.value.trim();
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    if (valor.length < 2) {
+        this.classList.add('is-invalid');
+        submitBtn.disabled = true;
+    } else {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+        submitBtn.disabled = false;
+    }
+});
+</script>
+{% endblock %}

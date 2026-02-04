@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {% if subcategoria %}Editar Subcategoría{% else %}Nueva Subcategoría{% endif %} - Inventario PPG
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-folder-open me-2"></i>
+                    {% if subcategoria %}
+                        Editar Subcategoría: {{ subcategoria.nombre }}
+                    {% else %}
+                        Nueva Subcategoría
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('guardar_subcategoria') }}">
+                    {% if subcategoria %}
+                        <input type="hidden" name="subcategoria_id" value="{{ subcategoria.id }}">
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="categoria_id" class="form-label">
+                            <i class="fas fa-folder me-1"></i>
+                            Categoría Principal *
+                        </label>
+                        <select class="form-select" name="categoria_id" id="categoria_id" required>
+                            <option value="">Seleccionar categoría...</option>
+                            {% for categoria in categorias %}
+                            <option value="{{ categoria.id }}" 
+                                    {% if subcategoria and subcategoria.categoria_id == categoria.id %}selected{% endif %}>
+                                {{ categoria.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            La subcategoría pertenecerá a esta categoría
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="nombre" class="form-label">
+                            <i class="fas fa-tag me-1"></i>
+                            Nombre de la Subcategoría *
+                        </label>
+                        <input type="text" class="form-control" name="nombre" id="nombre" 
+                               value="{{ subcategoria.nombre if subcategoria else '' }}" 
+                               placeholder="Ej: Tornillos, Tuercas, Arandelas..." required>
+                        <div class="form-text">
+                            El nombre debe ser único dentro de la categoría seleccionada
+                        </div>
+                    </div>
+                    
+                    {% if subcategoria %}
+                    <div class="mb-3">
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-info-circle me-2"></i>Información Actual</h6>
+                            <ul class="list-unstyled mb-0">
+                                <li><strong>Categoría actual:</strong> {{ subcategoria.categoria_nombre }}</li>
+                                <li><strong>Productos asignados:</strong> 
+                                    <span class="badge bg-primary">{{ subcategoria.productos_count if subcategoria.productos_count else 0 }}</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('categorias') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Volver
+                        </a>
+                        <div>
+                            {% if subcategoria %}
+                                <button type="button" class="btn btn-outline-danger me-2" 
+                                        onclick="confirmarEliminar()"
+                                        {% if subcategoria.productos_count > 0 %}disabled{% endif %}>
+                                    <i class="fas fa-trash me-1"></i>
+                                    Eliminar
+                                </button>
+                            {% endif %}
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                {% if subcategoria %}Actualizar{% else %}Crear{% endif %} Subcategoría
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if subcategoria %}
+<!-- Formulario oculto para eliminar -->
+<form id="eliminarForm" method="POST" action="{{ url_for('eliminar_subcategoria', id=subcategoria.id) }}" style="display: none;">
+</form>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+{% if subcategoria %}
+function confirmarEliminar() {
+    const nombre = "{{ subcategoria.nombre }}";
+    const productos = {{ subcategoria.productos_count if subcategoria.productos_count else 0 }};
+    
+    if (productos > 0) {
+        alert(`No se puede eliminar la subcategoría "${nombre}" porque tiene ${productos} producto(s) asignado(s).`);
+        return;
+    }
+    
+    if (confirm(`¿Estás seguro de que deseas eliminar la subcategoría "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        document.getElementById('eliminarForm').submit();
+    }
+}
+{% endif %}
+
+// Auto-focus en el campo de categoría si es nueva, o en nombre si es edición
+{% if subcategoria %}
+document.getElementById('nombre').focus();
+{% else %}
+document.getElementById('categoria_id').focus();
+{% endif %}
+
+// Validación en tiempo real
+function validarFormulario() {
+    const categoria = document.getElementById('categoria_id').value;
+    const nombre = document.getElementById('nombre').value.trim();
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    if (categoria && nombre.length >= 2) {
+        submitBtn.disabled = false;
+        document.getElementById('nombre').classList.remove('is-invalid');
+        document.getElementById('nombre').classList.add('is-valid');
+    } else {
+        submitBtn.disabled = true;
+        if (nombre.length > 0 && nombre.length < 2) {
+            document.getElementById('nombre').classList.add('is-invalid');
+        }
+    }
+}
+
+document.getElementById('categoria_id').addEventListener('change', validarFormulario);
+document.getElementById('nombre').addEventListener('input', validarFormulario);
+
+// Validación inicial
+validarFormulario();
+
+// Pre-seleccionar categoría si viene en URL
+const urlParams = new URLSearchParams(window.location.search);
+const categoriaId = urlParams.get('categoria_id');
+if (categoriaId) {
+    document.getElementById('categoria_id').value = categoriaId;
+    validarFormulario();
+}
+</script>
+{% endblock %}

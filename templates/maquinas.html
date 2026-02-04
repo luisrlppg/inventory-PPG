@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Máquinas - Inventario PPG{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-cogs me-2"></i>Gestión de Máquinas</h2>
+    <div class="btn-group" role="group">
+        <button type="button" class="btn btn-primary" onclick="window.location.href='{{ url_for('nueva_maquina') }}'">
+            <i class="fas fa-plus me-1"></i>
+            Nueva Máquina
+        </button>
+        <button type="button" class="btn btn-info" onclick="exportarMaquinas()">
+            <i class="fas fa-download me-1"></i>
+            Exportar CSV
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="filter-card">
+    <form method="GET" id="filtrosForm">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" name="search" id="search" 
+                       value="{{ filters.search }}" placeholder="Buscar por nombre de máquina...">
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="limpiarFiltros()">
+                    <i class="fas fa-times me-1"></i>Limpiar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Tabla de Máquinas -->
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+                <th>Productos</th>
+                <th>Fecha Creación</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for maquina in maquinas %}
+            <tr>
+                <td>{{ maquina.id }}</td>
+                <td>
+                    <strong>{{ maquina.nombre }}</strong>
+                </td>
+                <td>
+                    <span class="badge bg-primary">{{ maquina.productos_count }}</span>
+                </td>
+                <td>
+                    {% if maquina.fecha_creacion %}
+                        {{ maquina.fecha_creacion[:10] }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-info" 
+                                onclick="verDetallesMaquina({{ maquina.id }}, '{{ maquina.nombre }}')"
+                                title="Ver detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-warning" 
+                                onclick="window.location.href='{{ url_for('editar_maquina', id=maquina.id) }}'"
+                                title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        {% if maquina.productos_count == 0 %}
+                        <button type="button" class="btn btn-outline-danger" 
+                                onclick="confirmarEliminarMaquina({{ maquina.id }}, '{{ maquina.nombre }}')"
+                                title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        {% else %}
+                        <button type="button" class="btn btn-outline-secondary" disabled
+                                title="No se puede eliminar: tiene productos asignados">
+                            <i class="fas fa-lock"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" class="text-center text-muted">
+                    <i class="fas fa-cogs fa-2x mb-2"></i>
+                    <br>No hay máquinas registradas
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Información adicional -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h6><i class="fas fa-info-circle me-2"></i>Información sobre Máquinas</h6>
+            <ul class="mb-0">
+                <li><strong>Relación Múltiple:</strong> Un producto puede usarse en varias máquinas</li>
+                <li><strong>Flexibilidad:</strong> Una máquina puede usar varios productos</li>
+                <li><strong>Gestión:</strong> Asigna máquinas a productos desde el formulario de productos</li>
+                <li><strong>Eliminación:</strong> Solo se pueden eliminar máquinas sin productos asignados</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para detalles de máquina -->
+<div class="modal fade" id="detallesMaquinaModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-cog me-2"></i>
+                    Detalles de Máquina
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallesMaquinaContent">
+                <!-- Contenido cargado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function verDetallesMaquina(id, nombre) {
+    document.getElementById('detallesMaquinaContent').innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    `;
+    
+    fetch(`/api/maquina/${id}`)
+        .then(response => response.json())
+        .then(data => {
+            let productosHtml = '';
+            if (data.productos && data.productos.length > 0) {
+                productosHtml = data.productos.map(prod => 
+                    `<li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${prod.descripcion}</strong>
+                            ${prod.codigo ? `<br><small class="text-muted">Código: ${prod.codigo}</small>` : ''}
+                        </div>
+                        <span class="badge bg-info rounded-pill">ID: ${prod.id}</span>
+                    </li>`
+                ).join('');
+            } else {
+                productosHtml = '<li class="list-group-item text-muted">No hay productos asignados</li>';
+            }
+            
+            document.getElementById('detallesMaquinaContent').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle me-2"></i>Información General</h6>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong>ID:</strong> ${data.id}</li>
+                            <li class="list-group-item"><strong>Nombre:</strong> ${data.nombre}</li>
+                            <li class="list-group-item"><strong>Productos:</strong> ${data.productos_count}</li>
+                            <li class="list-group-item"><strong>Creada:</strong> ${data.fecha_creacion || 'No disponible'}</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-boxes me-2"></i>Productos que Usa</h6>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <ul class="list-group">
+                                ${productosHtml}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            document.getElementById('detallesMaquinaContent').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al cargar los detalles: ${error.message}
+                </div>
+            `;
+        });
+    
+    new bootstrap.Modal(document.getElementById('detallesMaquinaModal')).show();
+}
+
+function confirmarEliminarMaquina(id, nombre) {
+    if (confirm(`¿Estás seguro de que deseas eliminar la máquina "${nombre}"?\n\nEsta acción no se puede deshacer.`)) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/maquina/eliminar/${id}`;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function exportarMaquinas() {
+    const params = new URLSearchParams(window.location.search);
+    window.location.href = '/exportar/maquinas?' + params.toString();
+}
+</script>
+{% endblock %}
