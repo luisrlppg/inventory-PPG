@@ -945,12 +945,15 @@ def api_producto(id):
     # Obtener información del producto
     producto = conn.execute('''
         SELECT p.*, c.nombre as categoria, sc.nombre as subcategoria, 
-               m.nombre as marca, mq.nombre as maquina
+               m.nombre as marca, mq.nombre as maquina, pr.nombre as proveedor,
+               pr.contacto as proveedor_contacto, pr.telefono as proveedor_telefono,
+               pr.email as proveedor_email, pr.pagina_web as proveedor_web
         FROM productos p
         LEFT JOIN categorias c ON p.categoria_id = c.id
         LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
         LEFT JOIN marcas m ON p.marca_id = m.id
         LEFT JOIN maquinas mq ON p.maquina_id = mq.id
+        LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
         WHERE p.id = ?
     ''', (id,)).fetchone()
     

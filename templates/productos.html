@@ -310,6 +310,15 @@ function verDetalles(productoId) {
                             <tr><td><strong>Subcategoría:</strong></td><td>${data.subcategoria || 'Sin subcategoría'}</td></tr>
                             <tr><td><strong>Marca:</strong></td><td>${data.marca || 'Sin marca'}</td></tr>
                             <tr><td><strong>Máquina:</strong></td><td>${data.maquina || 'N/A'}</td></tr>
+                            <tr><td><strong>Proveedor:</strong></td><td>${data.proveedor ? `
+                                <div>
+                                    <strong>${data.proveedor}</strong>
+                                    ${data.proveedor_contacto ? `<br><small class="text-muted">Contacto: ${data.proveedor_contacto}</small>` : ''}
+                                    ${data.proveedor_telefono ? `<br><small class="text-muted"><i class="fas fa-phone"></i> ${data.proveedor_telefono}</small>` : ''}
+                                    ${data.proveedor_email ? `<br><small class="text-muted"><i class="fas fa-envelope"></i> ${data.proveedor_email}</small>` : ''}
+                                    ${data.proveedor_web ? `<br><small class="text-muted"><i class="fas fa-globe"></i> <a href="${data.proveedor_web}" target="_blank">${data.proveedor_web}</a></small>` : ''}
+                                </div>
+                            ` : 'Sin proveedor'}</td></tr>
                             <tr><td><strong>Stock Total:</strong></td><td><span class="fs-5 fw-bold">${data.stock_total}</span> ${estadoStock}</td></tr>
                             <tr><td><strong>Cantidad Requerida:</strong></td><td>${data.cantidad_requerida}</td></tr>
                             <tr><td><strong>Notas:</strong></td><td>${data.notas || 'Sin notas'}</td></tr>
