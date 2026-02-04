@@ -1508,6 +1508,8 @@ def eliminar_maquina(id):
         conn.close()
     
     return redirect(url_for('maquinas'))
+
+@app.route('/categoria/nueva')
 def nueva_categoria():
     """Formulario para nueva categoría"""
     return render_template('categoria_form.html')
@@ -1775,6 +1777,8 @@ def eliminar_subcategoria(id):
         conn.close()
     
     return redirect(url_for('categorias'))
+
+@app.route('/ubicacion/nueva')
 def nueva_ubicacion():
     """Formulario para nueva ubicación"""
     return render_template('ubicacion_form.html')
