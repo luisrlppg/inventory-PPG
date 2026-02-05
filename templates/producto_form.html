@@ -127,6 +127,14 @@
                                 <div class="form-text">Cantidad mínima necesaria en inventario</div>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stock_minimo" class="form-label">Stock Mínimo para Alertas</label>
+                                <input type="number" class="form-control" id="stock_minimo" name="stock_minimo" 
+                                       value="{{ producto.stock_minimo if producto else 5 }}" min="0">
+                                <div class="form-text">Nivel mínimo para generar alertas automáticas</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">

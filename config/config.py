@@ -34,6 +34,27 @@ class Config:
     RESPALDO_AUTOMATICO = True
     RESPALDO_DIAS = 7  # Mantener respaldos por 7 días
     
+    # Configuración de correo electrónico
+    MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL', 'false').lower() in ['true', 'on', '1']
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or ''
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or ''
+    MAIL_DEFAULT_SENDER = os.environ.get('MAIL_DEFAULT_SENDER') or ''
+    
+    # Configuración de alertas de stock
+    STOCK_ALERT_ENABLED = os.environ.get('STOCK_ALERT_ENABLED', 'true').lower() in ['true', 'on', '1']
+    STOCK_ALERT_RECIPIENTS = os.environ.get('STOCK_ALERT_RECIPIENTS', '').split(',') if os.environ.get('STOCK_ALERT_RECIPIENTS') else []
+    STOCK_ALERT_SUBJECT = 'Alerta de Stock Bajo - Inventario PPG'
+    STOCK_ALERT_FREQUENCY_HOURS = int(os.environ.get('STOCK_ALERT_FREQUENCY_HOURS') or 24)
+    
+    # Configuración de reportes
+    REPORT_LOGO_PATH = 'static/logo.png'
+    COMPANY_NAME = 'PPG - Plásticos Plasa'
+    COMPANY_ADDRESS = 'Dirección de la empresa'
+    COMPANY_PHONE = 'Teléfono de contacto'
+    
     @staticmethod
     def init_app(app):
         """Inicializar configuración de la aplicación"""

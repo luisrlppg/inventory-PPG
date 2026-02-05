@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, make_response, send_file
+from flask_mail import Mail, Message
 import sqlite3
 import os
 import hashlib
@@ -11,10 +12,13 @@ import tempfile
 from datetime import datetime, timedelta
 from functools import wraps
 from werkzeug.utils import secure_filename
+from config.config import Config
 
 app = Flask(__name__)
-app.secret_key = 'tu_clave_secreta_aqui'
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # 100MB max file size
+app.config.from_object(Config)
+
+# Inicializar Flask-Mail
+mail = Mail(app)
 
 # Configuración de logging
 logging.basicConfig(
@@ -118,6 +122,298 @@ def log_admin_operation(operation_type, description, producto_id=None, ubicacion
         if should_close_conn:
             conn.close()
 
+def get_productos_stock_bajo():
+    """Obtener productos con stock por debajo del mínimo"""
+    conn = get_db_connection()
+    try:
+        productos_stock_bajo = conn.execute('''
+            SELECT 
+                p.id,
+                p.codigo,
+                p.descripcion,
+                p.stock_minimo,
+                COALESCE(SUM(i.cantidad), 0) as stock_actual,
+                c.nombre as categoria,
+                sc.nombre as subcategoria,
+                pr.nombre as proveedor,
+                pr.telefono as proveedor_telefono,
+                pr.email as proveedor_email,
+                GROUP_CONCAT(u.nombre || ': ' || i.cantidad, ', ') as ubicaciones_stock
+            FROM productos p
+            LEFT JOIN inventario i ON p.id = i.producto_id
+            LEFT JOIN categorias c ON p.categoria_id = c.id
+            LEFT JOIN subcategorias sc ON p.subcategoria_id = sc.id
+            LEFT JOIN proveedores pr ON p.proveedor_id = pr.id
+            LEFT JOIN ubicaciones u ON i.ubicacion_id = u.id
+            WHERE p.stock_minimo > 0
+            GROUP BY p.id, p.codigo, p.descripcion, p.stock_minimo, c.nombre, sc.nombre, pr.nombre, pr.telefono, pr.email
+            HAVING stock_actual <= p.stock_minimo
+            ORDER BY (stock_actual - p.stock_minimo) ASC, p.descripcion
+        ''').fetchall()
+        
+        return [dict(row) for row in productos_stock_bajo]
+    finally:
+        conn.close()
+
+def enviar_alerta_stock_bajo(productos_stock_bajo, destinatarios=None):
+    """Enviar correo de alerta de stock bajo"""
+    if not app.config.get('STOCK_ALERT_ENABLED', True):
+        logging.info("Alertas de stock deshabilitadas")
+        return False
+    
+    if not productos_stock_bajo:
+        logging.info("No hay productos con stock bajo")
+        return True
+    
+    # Usar destinatarios de configuración si no se especifican
+    if not destinatarios:
+        destinatarios = app.config.get('STOCK_ALERT_RECIPIENTS', [])
+    
+    if not destinatarios:
+        logging.warning("No hay destinatarios configurados para alertas de stock")
+        return False
+    
+    # Verificar configuración de correo
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        logging.error("Configuración de correo incompleta")
+        return False
+    
+    try:
+        # Crear el mensaje
+        subject = app.config.get('STOCK_ALERT_SUBJECT', 'Alerta de Stock Bajo - Inventario PPG')
+        
+        # Generar contenido HTML
+        html_content = generar_html_alerta_stock(productos_stock_bajo)
+        
+        # Generar contenido de texto plano
+        text_content = generar_texto_alerta_stock(productos_stock_bajo)
+        
+        # Enviar correo a cada destinatario
+        for destinatario in destinatarios:
+            if destinatario.strip():  # Verificar que no esté vacío
+                msg = Message(
+                    subject=subject,
+                    sender=app.config.get('MAIL_DEFAULT_SENDER'),
+                    recipients=[destinatario.strip()],
+                    body=text_content,
+                    html=html_content
+                )
+                
+                mail.send(msg)
+                logging.info(f"Alerta de stock enviada a: {destinatario}")
+        
+        # Registrar en logs de administrador
+        log_admin_operation(
+            'STOCK_ALERT', 
+            f'Alerta de stock bajo enviada - {len(productos_stock_bajo)} productos afectados'
+        )
+        
+        return True
+        
+    except Exception as e:
+        logging.error(f"Error enviando alerta de stock: {e}")
+        return False
+
+def generar_html_alerta_stock(productos_stock_bajo):
+    """Generar contenido HTML para la alerta de stock"""
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
+    html = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; }}
+            .header {{ background-color: #dc3545; color: white; padding: 15px; text-align: center; }}
+            .content {{ padding: 20px; }}
+            .summary {{ background-color: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #dc3545; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            .critical {{ background-color: #ffebee; }}
+            .warning {{ background-color: #fff3e0; }}
+            .footer {{ margin-top: 30px; padding: 15px; background-color: #f8f9fa; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🚨 ALERTA DE STOCK BAJO</h1>
+            <p>{app.config.get('COMPANY_NAME', 'PPG - Plásticos Plasa')}</p>
+        </div>
+        
+        <div class="content">
+            <div class="summary">
+                <h3>Resumen de la Alerta</h3>
+                <p><strong>Fecha y Hora:</strong> {fecha_actual}</p>
+                <p><strong>Productos Afectados:</strong> {len(productos_stock_bajo)}</p>
+                <p><strong>Acción Requerida:</strong> Revisar y reabastecer productos con stock bajo</p>
+            </div>
+            
+            <h3>Productos que Requieren Atención</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Stock Actual</th>
+                        <th>Stock Mínimo</th>
+                        <th>Diferencia</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Ubicaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+    """
+    
+    for producto in productos_stock_bajo:
+        diferencia = producto['stock_actual'] - producto['stock_minimo']
+        clase_fila = 'critical' if diferencia < 0 else 'warning'
+        
+        proveedor_info = producto['proveedor'] or 'Sin proveedor'
+        if producto['proveedor_telefono']:
+            proveedor_info += f" (Tel: {producto['proveedor_telefono']})"
+        
+        categoria_info = producto['categoria'] or 'Sin categoría'
+        if producto['subcategoria']:
+            categoria_info += f" > {producto['subcategoria']}"
+        
+        ubicaciones = producto['ubicaciones_stock'] or 'Sin ubicaciones'
+        
+        html += f"""
+                    <tr class="{clase_fila}">
+                        <td>{producto['codigo'] or 'N/A'}</td>
+                        <td>{producto['descripcion']}</td>
+                        <td style="text-align: center;"><strong>{producto['stock_actual']}</strong></td>
+                        <td style="text-align: center;">{producto['stock_minimo']}</td>
+                        <td style="text-align: center; color: {'red' if diferencia < 0 else 'orange'};">
+                            {diferencia:+d}
+                        </td>
+                        <td>{categoria_info}</td>
+                        <td>{proveedor_info}</td>
+                        <td>{ubicaciones}</td>
+                    </tr>
+        """
+    
+    html += f"""
+                </tbody>
+            </table>
+            
+            <div class="summary">
+                <h4>Recomendaciones:</h4>
+                <ul>
+                    <li>Contactar a los proveedores para realizar pedidos urgentes</li>
+                    <li>Verificar si hay stock en otras ubicaciones</li>
+                    <li>Considerar productos alternativos o sustitutos</li>
+                    <li>Revisar y ajustar los niveles de stock mínimo si es necesario</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Este correo fue generado automáticamente por el Sistema de Inventario PPG</p>
+            <p>Fecha de generación: {fecha_actual}</p>
+            <p>Para más información, accede al sistema: <a href="http://localhost:5000">Sistema de Inventario</a></p>
+        </div>
+    </body>
+    </html>
+    """
+    
+    return html
+
+def generar_texto_alerta_stock(productos_stock_bajo):
+    """Generar contenido de texto plano para la alerta de stock"""
+    fecha_actual = datetime.now().strftime('%d/%m/%Y %H:%M')
+    
+    texto = f"""
+🚨 ALERTA DE STOCK BAJO - {app.config.get('COMPANY_NAME', 'PPG - Plásticos Plasa')}
+
+Fecha y Hora: {fecha_actual}
+Productos Afectados: {len(productos_stock_bajo)}
+
+PRODUCTOS QUE REQUIEREN ATENCIÓN:
+{'='*80}
+
+"""
+    
+    for i, producto in enumerate(productos_stock_bajo, 1):
+        diferencia = producto['stock_actual'] - producto['stock_minimo']
+        estado = "CRÍTICO" if diferencia < 0 else "BAJO"
+        
+        proveedor_info = producto['proveedor'] or 'Sin proveedor'
+        if producto['proveedor_telefono']:
+            proveedor_info += f" (Tel: {producto['proveedor_telefono']})"
+        
+        categoria_info = producto['categoria'] or 'Sin categoría'
+        if producto['subcategoria']:
+            categoria_info += f" > {producto['subcategoria']}"
+        
+        texto += f"""
+{i}. [{estado}] {producto['descripcion']}
+   Código: {producto['codigo'] or 'N/A'}
+   Stock Actual: {producto['stock_actual']} | Stock Mínimo: {producto['stock_minimo']} | Diferencia: {diferencia:+d}
+   Categoría: {categoria_info}
+   Proveedor: {proveedor_info}
+   Ubicaciones: {producto['ubicaciones_stock'] or 'Sin ubicaciones'}
+   
+"""
+    
+    texto += f"""
+RECOMENDACIONES:
+- Contactar a los proveedores para realizar pedidos urgentes
+- Verificar si hay stock en otras ubicaciones
+- Considerar productos alternativos o sustitutos
+- Revisar y ajustar los niveles de stock mínimo si es necesario
+
+---
+Este correo fue generado automáticamente por el Sistema de Inventario PPG
+Fecha de generación: {fecha_actual}
+Para más información, accede al sistema: http://localhost:5000
+"""
+    
+    return texto
+
+def verificar_y_enviar_alertas_stock():
+    """Verificar stock bajo y enviar alertas si es necesario"""
+    try:
+        # Verificar si han pasado suficientes horas desde la última alerta
+        conn = get_db_connection()
+        
+        # Buscar la última alerta enviada
+        ultima_alerta = conn.execute('''
+            SELECT timestamp as fecha_creacion 
+            FROM operation_logs 
+            WHERE operation_type = 'STOCK_ALERT' 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        ''').fetchone()
+        
+        if ultima_alerta:
+            tiempo_ultima_alerta = datetime.fromisoformat(ultima_alerta['fecha_creacion'])
+            horas_transcurridas = (datetime.now() - tiempo_ultima_alerta).total_seconds() / 3600
+            frecuencia_horas = app.config.get('STOCK_ALERT_FREQUENCY_HOURS', 24)
+            
+            if horas_transcurridas < frecuencia_horas:
+                logging.info(f"Alerta de stock no enviada - faltan {frecuencia_horas - horas_transcurridas:.1f} horas")
+                return False
+        
+        conn.close()
+        
+        # Obtener productos con stock bajo
+        productos_stock_bajo = get_productos_stock_bajo()
+        
+        if productos_stock_bajo:
+            logging.info(f"Encontrados {len(productos_stock_bajo)} productos con stock bajo")
+            return enviar_alerta_stock_bajo(productos_stock_bajo)
+        else:
+            logging.info("No se encontraron productos con stock bajo")
+            return True
+            
+    except Exception as e:
+        logging.error(f"Error verificando alertas de stock: {e}")
+        return False
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     """Login de administrador"""
@@ -197,6 +493,182 @@ def admin_logout():
     session.pop('admin_username', None)
     flash('Sesión de administrador cerrada', 'info')
     return redirect(url_for('inventario'))
+
+@app.route('/admin/stock-alerts')
+@require_admin
+def admin_stock_alerts():
+    """Panel de administración de alertas de stock"""
+    # Obtener productos con stock bajo
+    productos_stock_bajo = get_productos_stock_bajo()
+    
+    # Obtener configuración actual
+    config_alertas = {
+        'enabled': app.config.get('STOCK_ALERT_ENABLED', True),
+        'recipients': app.config.get('STOCK_ALERT_RECIPIENTS', []),
+        'frequency_hours': app.config.get('STOCK_ALERT_FREQUENCY_HOURS', 24),
+        'mail_configured': bool(app.config.get('MAIL_USERNAME') and app.config.get('MAIL_PASSWORD'))
+    }
+    
+    # Obtener historial de alertas recientes
+    conn = get_db_connection()
+    historial_alertas = conn.execute('''
+        SELECT ol.*, au.username
+        FROM operation_logs ol
+        JOIN admin_users au ON ol.admin_user_id = au.id
+        WHERE ol.operation_type = 'STOCK_ALERT'
+        ORDER BY ol.timestamp DESC
+        LIMIT 10
+    ''').fetchall()
+    conn.close()
+    
+    return render_template('admin_stock_alerts.html', 
+                         productos_stock_bajo=productos_stock_bajo,
+                         config_alertas=config_alertas,
+                         historial_alertas=historial_alertas)
+
+@app.route('/admin/send-stock-alert', methods=['POST'])
+@require_admin
+def admin_send_stock_alert():
+    """Enviar alerta de stock manualmente"""
+    try:
+        # Obtener destinatarios del formulario o usar configuración por defecto
+        destinatarios_form = request.form.get('destinatarios', '').strip()
+        if destinatarios_form:
+            destinatarios = [email.strip() for email in destinatarios_form.split(',') if email.strip()]
+        else:
+            destinatarios = app.config.get('STOCK_ALERT_RECIPIENTS', [])
+        
+        if not destinatarios:
+            flash('No se especificaron destinatarios para la alerta', 'error')
+            return redirect(url_for('admin_stock_alerts'))
+        
+        # Obtener productos con stock bajo
+        productos_stock_bajo = get_productos_stock_bajo()
+        
+        if not productos_stock_bajo:
+            flash('No hay productos con stock bajo en este momento', 'info')
+            return redirect(url_for('admin_stock_alerts'))
+        
+        # Enviar alerta
+        if enviar_alerta_stock_bajo(productos_stock_bajo, destinatarios):
+            flash(f'Alerta de stock enviada exitosamente a {len(destinatarios)} destinatarios', 'success')
+        else:
+            flash('Error al enviar la alerta de stock. Revisa la configuración de correo.', 'error')
+    
+    except Exception as e:
+        logging.error(f"Error enviando alerta manual: {e}")
+        flash('Error interno al enviar la alerta', 'error')
+    
+    return redirect(url_for('admin_stock_alerts'))
+
+@app.route('/admin/test-email', methods=['POST'])
+@require_admin
+def admin_test_email():
+    """Enviar correo de prueba"""
+    try:
+        destinatario = request.form.get('email_prueba', '').strip()
+        if not destinatario:
+            flash('Especifica un email para la prueba', 'error')
+            return redirect(url_for('admin_stock_alerts'))
+        
+        # Crear mensaje de prueba
+        msg = Message(
+            subject='Prueba de Configuración - Sistema de Inventario PPG',
+            sender=app.config.get('MAIL_DEFAULT_SENDER'),
+            recipients=[destinatario],
+            body=f"""
+Prueba de configuración de correo electrónico
+
+Este es un mensaje de prueba del Sistema de Inventario PPG.
+Si recibes este correo, la configuración está funcionando correctamente.
+
+Fecha y hora: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+Usuario administrador: {session.get('admin_username')}
+
+Sistema de Inventario PPG
+            """,
+            html=f"""
+            <html>
+            <body style="font-family: Arial, sans-serif;">
+                <h2 style="color: #28a745;">✅ Prueba de Configuración Exitosa</h2>
+                <p>Este es un mensaje de prueba del <strong>Sistema de Inventario PPG</strong>.</p>
+                <p>Si recibes este correo, la configuración está funcionando correctamente.</p>
+                
+                <div style="background-color: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #28a745;">
+                    <p><strong>Fecha y hora:</strong> {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</p>
+                    <p><strong>Usuario administrador:</strong> {session.get('admin_username')}</p>
+                </div>
+                
+                <hr>
+                <p style="font-size: 12px; color: #666;">Sistema de Inventario PPG</p>
+            </body>
+            </html>
+            """
+        )
+        
+        mail.send(msg)
+        
+        # Registrar en logs
+        log_admin_operation('EMAIL_TEST', f'Correo de prueba enviado a: {destinatario}')
+        
+        flash(f'Correo de prueba enviado exitosamente a: {destinatario}', 'success')
+        
+    except Exception as e:
+        logging.error(f"Error enviando correo de prueba: {e}")
+        flash(f'Error al enviar correo de prueba: {str(e)}', 'error')
+    
+    return redirect(url_for('admin_stock_alerts'))
+
+@app.route('/api/productos/<int:producto_id>/stock-minimo', methods=['PUT'])
+@require_admin
+def update_stock_minimo(producto_id):
+    """Actualizar stock mínimo de un producto"""
+    try:
+        data = request.get_json()
+        nuevo_stock_minimo = int(data.get('stock_minimo', 0))
+        
+        if nuevo_stock_minimo < 0:
+            return jsonify({'error': 'El stock mínimo no puede ser negativo'}), 400
+        
+        conn = get_db_connection()
+        
+        # Obtener stock mínimo actual
+        producto_actual = conn.execute(
+            'SELECT stock_minimo, descripcion FROM productos WHERE id = ?', 
+            (producto_id,)
+        ).fetchone()
+        
+        if not producto_actual:
+            return jsonify({'error': 'Producto no encontrado'}), 404
+        
+        # Actualizar stock mínimo
+        conn.execute(
+            'UPDATE productos SET stock_minimo = ? WHERE id = ?',
+            (nuevo_stock_minimo, producto_id)
+        )
+        conn.commit()
+        
+        # Registrar operación
+        log_admin_operation(
+            'STOCK_MINIMO_UPDATE',
+            f'Stock mínimo actualizado: {producto_actual["descripcion"]} - {producto_actual["stock_minimo"]} → {nuevo_stock_minimo}',
+            producto_id=producto_id,
+            conn=conn
+        )
+        
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Stock mínimo actualizado correctamente',
+            'nuevo_stock_minimo': nuevo_stock_minimo
+        })
+        
+    except ValueError:
+        return jsonify({'error': 'Valor de stock mínimo inválido'}), 400
+    except Exception as e:
+        logging.error(f"Error actualizando stock mínimo: {e}")
+        return jsonify({'error': 'Error interno del servidor'}), 500
 
 @app.route('/')
 def index():
@@ -422,6 +894,7 @@ def guardar_producto():
         proveedor_id = request.form['proveedor_id'] if request.form['proveedor_id'] else None
         notas = request.form['notas']
         cantidad_requerida = int(request.form['cantidad_requerida']) if request.form['cantidad_requerida'] else 1
+        stock_minimo = int(request.form['stock_minimo']) if request.form['stock_minimo'] else 5
         maquina_id = request.form['maquina_id'] if request.form['maquina_id'] else None
         
         producto_id = request.form.get('producto_id')
@@ -430,18 +903,18 @@ def guardar_producto():
             conn.execute('''
                 UPDATE productos 
                 SET descripcion=?, codigo=?, categoria_id=?, subcategoria_id=?, marca_id=?, 
-                    proveedor_id=?, notas=?, cantidad_requerida=?, maquina_id=?, fecha_actualizacion=CURRENT_TIMESTAMP
+                    proveedor_id=?, notas=?, cantidad_requerida=?, stock_minimo=?, maquina_id=?, fecha_actualizacion=CURRENT_TIMESTAMP
                 WHERE id=?
             ''', (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                  proveedor_id, notas, cantidad_requerida, maquina_id, producto_id))
+                  proveedor_id, notas, cantidad_requerida, stock_minimo, maquina_id, producto_id))
             flash('Producto actualizado exitosamente', 'success')
         else:  # Crear nuevo producto
             conn.execute('''
                 INSERT INTO productos (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                                     proveedor_id, notas, cantidad_requerida, maquina_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                     proveedor_id, notas, cantidad_requerida, stock_minimo, maquina_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (descripcion, codigo, categoria_id, subcategoria_id, marca_id, 
-                  proveedor_id, notas, cantidad_requerida, maquina_id))
+                  proveedor_id, notas, cantidad_requerida, stock_minimo, maquina_id))
             flash('Producto creado exitosamente', 'success')
         
         conn.commit()

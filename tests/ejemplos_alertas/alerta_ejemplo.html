@@ -1,0 +1,96 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { background-color: #dc3545; color: white; padding: 15px; text-align: center; }
+            .content { padding: 20px; }
+            .summary { background-color: #f8f9fa; padding: 15px; margin: 15px 0; border-left: 4px solid #dc3545; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .critical { background-color: #ffebee; }
+            .warning { background-color: #fff3e0; }
+            .footer { margin-top: 30px; padding: 15px; background-color: #f8f9fa; font-size: 12px; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>🚨 ALERTA DE STOCK BAJO</h1>
+            <p>PPG - Plásticos Plasa</p>
+        </div>
+        
+        <div class="content">
+            <div class="summary">
+                <h3>Resumen de la Alerta</h3>
+                <p><strong>Fecha y Hora:</strong> 05/02/2026 13:47</p>
+                <p><strong>Productos Afectados:</strong> 2</p>
+                <p><strong>Acción Requerida:</strong> Revisar y reabastecer productos con stock bajo</p>
+            </div>
+            
+            <h3>Productos que Requieren Atención</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Descripción</th>
+                        <th>Stock Actual</th>
+                        <th>Stock Mínimo</th>
+                        <th>Diferencia</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Ubicaciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+    
+                    <tr class="critical">
+                        <td>TEST001</td>
+                        <td>Producto de Prueba 1</td>
+                        <td style="text-align: center;"><strong>2</strong></td>
+                        <td style="text-align: center;">5</td>
+                        <td style="text-align: center; color: red;">
+                            -3
+                        </td>
+                        <td>Categoría Test > Subcategoría Test</td>
+                        <td>Proveedor Test (Tel: 555-1234)</td>
+                        <td>Almacén A: 1, Almacén B: 1</td>
+                    </tr>
+        
+                    <tr class="critical">
+                        <td>TEST002</td>
+                        <td>Producto de Prueba 2</td>
+                        <td style="text-align: center;"><strong>0</strong></td>
+                        <td style="text-align: center;">3</td>
+                        <td style="text-align: center; color: red;">
+                            -3
+                        </td>
+                        <td>Categoría Test 2</td>
+                        <td>Sin proveedor</td>
+                        <td>Sin ubicaciones</td>
+                    </tr>
+        
+                </tbody>
+            </table>
+            
+            <div class="summary">
+                <h4>Recomendaciones:</h4>
+                <ul>
+                    <li>Contactar a los proveedores para realizar pedidos urgentes</li>
+                    <li>Verificar si hay stock en otras ubicaciones</li>
+                    <li>Considerar productos alternativos o sustitutos</li>
+                    <li>Revisar y ajustar los niveles de stock mínimo si es necesario</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Este correo fue generado automáticamente por el Sistema de Inventario PPG</p>
+            <p>Fecha de generación: 05/02/2026 13:47</p>
+            <p>Para más información, accede al sistema: <a href="http://localhost:5000">Sistema de Inventario</a></p>
+        </div>
+    </body>
+    </html>
+    

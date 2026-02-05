@@ -37,6 +37,7 @@ docker compose --profile production up -d --build
 - **🏭 Máquinas**: Relación muchos-a-muchos con productos
 - **📋 Categorías**: Sistema jerárquico de clasificación
 - **📍 Ubicaciones**: Gestión de almacenes y ubicaciones
+- **📧 Alertas de Stock**: Sistema automático de notificaciones por correo
 
 ### 🔧 Características Técnicas
 - **🔐 Sistema de Administración**: Login seguro con logs de auditoría
@@ -45,6 +46,7 @@ docker compose --profile production up -d --build
 - **📱 Interfaz Responsiva**: Bootstrap 5 con diseño moderno
 - **🗄️ Base de Datos**: SQLite optimizada con índices
 - **🐳 Docker**: Contenedorización completa con Nginx
+- **📧 Correo Electrónico**: Alertas automáticas de stock bajo
 
 ## 📁 Estructura del Proyecto
 
@@ -81,6 +83,13 @@ La documentación completa está en [`docs/`](docs/):
 - 🐳 [Docker Setup](docs/DOCKER_DEPLOYMENT.md)
 - 🔄 [Migración Completada](docs/MIGRACION_PRODUCCION_COMPLETADA.md)
 - 🏢 [Sistema de Proveedores](docs/SUPPLIERS_SYSTEM_COMPLETED.md)
+- 📧 [Sistema de Alertas de Stock](docs/SISTEMA_ALERTAS_STOCK.md)
+
+### 🆕 Guías Rápidas
+- ⚡ [Guía Rápida de Alertas](docs/GUIA_RAPIDA_ALERTAS.md)
+- 📧 [Configurar Gmail](docs/CONFIGURAR_GMAIL.md)
+- 📋 [Implementación Completada](docs/IMPLEMENTACION_ALERTAS_COMPLETADA.md)
+- 🔧 [Ejemplo de Configuración de Correo](config/correo_ejemplo.env)
 
 ## 🧪 Pruebas
 

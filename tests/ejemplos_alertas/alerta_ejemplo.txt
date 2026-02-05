@@ -1,0 +1,36 @@
+
+🚨 ALERTA DE STOCK BAJO - PPG - Plásticos Plasa
+
+Fecha y Hora: 05/02/2026 13:47
+Productos Afectados: 2
+
+PRODUCTOS QUE REQUIEREN ATENCIÓN:
+================================================================================
+
+
+1. [CRÍTICO] Producto de Prueba 1
+   Código: TEST001
+   Stock Actual: 2 | Stock Mínimo: 5 | Diferencia: -3
+   Categoría: Categoría Test > Subcategoría Test
+   Proveedor: Proveedor Test (Tel: 555-1234)
+   Ubicaciones: Almacén A: 1, Almacén B: 1
+   
+
+2. [CRÍTICO] Producto de Prueba 2
+   Código: TEST002
+   Stock Actual: 0 | Stock Mínimo: 3 | Diferencia: -3
+   Categoría: Categoría Test 2
+   Proveedor: Sin proveedor
+   Ubicaciones: Sin ubicaciones
+   
+
+RECOMENDACIONES:
+- Contactar a los proveedores para realizar pedidos urgentes
+- Verificar si hay stock en otras ubicaciones
+- Considerar productos alternativos o sustitutos
+- Revisar y ajustar los niveles de stock mínimo si es necesario
+
+---
+Este correo fue generado automáticamente por el Sistema de Inventario PPG
+Fecha de generación: 05/02/2026 13:47
+Para más información, accede al sistema: http://localhost:5000

@@ -121,6 +121,7 @@
                         <th>Categoría</th>
                         <th>Marca</th>
                         <th>Stock</th>
+                        <th>Stock Mín.</th>
                         <th>Requerido</th>
                         <th>Máquina</th>
                         <th>Acciones</th>
@@ -160,6 +161,17 @@
                                 <span class="badge bg-warning">{{ producto.stock_total }}</span>
                             {% else %}
                                 <span class="badge bg-danger">0</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if producto.stock_minimo %}
+                                {% if producto.stock_total <= producto.stock_minimo %}
+                                    <span class="badge bg-danger" title="Stock por debajo del mínimo">{{ producto.stock_minimo }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ producto.stock_minimo }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">-</span>
                             {% endif %}
                         </td>
                         <td>{{ producto.cantidad_requerida }}</td>
